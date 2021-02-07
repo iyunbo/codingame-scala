@@ -1,4 +1,5 @@
 package org.iyunbo.coding
+package hardware
 
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should
