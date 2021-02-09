@@ -21,4 +21,9 @@ object Math {
     sqrtIter(x / 2)
   }
 
+  def mapReduce(f: Int => Int)(u: Int, combine: (Int, Int) => Int)(a: Int, b: Int): Int = {
+    if (a > b) u
+    else combine(f(a), mapReduce(f)(u, combine)(a + 1, b))
+  }
+
 }
