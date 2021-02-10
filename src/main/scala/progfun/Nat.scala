@@ -6,7 +6,7 @@ abstract class Nat {
 
   def predecessor: Nat
 
-  def successor: Nat
+  def successor: Nat = new Succ(this)
 
   def +(that: Nat): Nat
 
@@ -22,13 +22,11 @@ abstract class Nat {
 object Zero extends Nat {
   override def isZero: Boolean = true
 
-  override def predecessor: Nat = throw new NoSuchElementException
-
-  override def successor: Nat = new Succ(this)
+  override def predecessor: Nat = throw new IllegalArgumentException("0.predecessor")
 
   override def +(that: Nat): Nat = that
 
-  override def -(that: Nat): Nat = if (that.isZero) this else throw new IllegalArgumentException("zero minus positive number")
+  override def -(that: Nat): Nat = if (that.isZero) this else throw new IllegalArgumentException("negative number")
 
   override def toInt: Int = 0
 
@@ -39,16 +37,9 @@ class Succ(n: Nat) extends Nat {
 
   override def predecessor: Nat = n
 
-  override def successor: Nat = new Succ(this)
+  override def +(that: Nat): Nat = new Succ(n + that)
 
-  override def +(that: Nat): Nat = if (that.isZero)
-    this
-  else
-    this.successor + that.predecessor
-
-  override def -(that: Nat): Nat = if (this.isZero && !that.isZero)
-    throw new IllegalArgumentException("zero minus positive number")
-  else if (that.isZero)
+  override def -(that: Nat): Nat = if (that.isZero)
     this
   else
     this.predecessor - that.predecessor
