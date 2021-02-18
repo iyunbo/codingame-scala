@@ -14,3 +14,5 @@ libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.2" % "test"
 libraryDependencies += "com.novocode" % "junit-interface" % "0.11" % Test
 
 testOptions in Test += Tests.Argument(TestFrameworks.JUnit, "-a", "-v", "-s")
+
+Global / lintUnusedKeysOnLoad := false
