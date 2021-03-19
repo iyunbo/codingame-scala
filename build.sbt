@@ -10,6 +10,7 @@ scalacOptions ++= Seq("-language:implicitConversions", "-deprecation")
 
 libraryDependencies += "org.scalactic" %% "scalactic" % "3.2.2"
 libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.2" % "test"
+libraryDependencies += "org.scalacheck" %% "scalacheck" % "1.14.1"
 
 libraryDependencies += "com.novocode" % "junit-interface" % "0.11" % Test
 
