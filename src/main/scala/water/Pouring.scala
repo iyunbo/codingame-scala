@@ -32,15 +32,15 @@ class Pouring(capacity: Vector[Int]) {
     (for (glass <- glasses) yield Fill(glass)) ++
     (for (from <- glasses; to <- glasses if from != to) yield Pour(from, to))
 
-  class Path(history: List[Move], val endState: State) {
+  case class Path(history: List[Move], endState: State) {
 
-    def extend(move: Move): Path = new Path(move :: history, move next endState)
+    def extend(move: Move): Path = Path(move :: history, move next endState)
 
     override def toString: String = (history.reverse mkString " ") + " -> " + endState
   }
 
 
-  val initialPath: Path = new Path(Nil, initialState)
+  val initialPath: Path = Path(Nil, initialState)
 
   val pathSets: LazyList[Set[Path]] = from(Set(initialPath), Set(initialState))
 
