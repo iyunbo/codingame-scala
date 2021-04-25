@@ -1,6 +1,7 @@
 package org.iyunbo.coding
 package frp
 
+// global variables - not thread safe - don't use if doing concurrency
 class Stackable[T](init: T) {
   private var values: List[T] = List[T](init)
 
