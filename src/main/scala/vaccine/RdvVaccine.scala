@@ -175,12 +175,15 @@ object RdvVaccine extends WebBrowser {
       }
 
     } catch {
-      case e: ElementClickInterceptedException => {
+      case e: ElementClickInterceptedException =>
         log("Cannot click, we guess it's a false slot")
         e.printStackTrace()
-      }
-      case e: StaleElementReferenceException => e.printStackTrace()
-      case e: Exception => e.printStackTrace()
+      case e: StaleElementReferenceException =>
+        log("DOM has changed, verify if you changed the url")
+        e.printStackTrace()
+      case e: Exception =>
+        log("Unexpected error")
+        e.printStackTrace()
     }
   }
 
