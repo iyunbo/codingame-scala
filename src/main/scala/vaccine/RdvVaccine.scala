@@ -228,5 +228,5 @@ object RdvVaccine extends WebBrowser {
     }
   }
 
-  private def log(msg: String): Unit = println(s"${LocalDateTime.now()} [Covid-19] [Info] $msg")
+  private def log(msg: String): Unit = println(s"${LocalDateTime.now()} [COVID-19] [INFO] $msg")
 }
