@@ -23,12 +23,13 @@ object RdvVaccine extends WebBrowser {
 
   // behavioural parameters
   val waitForRefresh: Int = 0
-  val maxPage: Int = 8
+  implicit val DEFAULT_START_PAGE: Int = 1
+  implicit val DEFAULT_END_PAGE: Int = 8
   val verticalStep = 700
   val topPosition = 150
   val bottomPosition = 1600
   val maxCalendarsPerPage = 10
-  val roundCount = 24
+  val MAX_ROUND = 200
 
   // functional parameters
   val region = "paris"
@@ -55,17 +56,25 @@ object RdvVaccine extends WebBrowser {
     driver.manage().window().maximize()
     implicitlyWait(Span(1.5, Seconds))
 
+    implicit var startPage: Int = RdvVaccine.DEFAULT_START_PAGE
+    implicit var endPage: Int = RdvVaccine.DEFAULT_END_PAGE
 
-    for (round <- 1 to roundCount) findRdvVaccine(round)
+    if (args.length >= 2) {
+      startPage = Integer.valueOf(args(0))
+      endPage = Integer.valueOf(args(1))
+    }
 
-    Beep.run(5)
+
+    for (round <- 1 to MAX_ROUND) findRdvVaccine(round)(startPage, endPage)
+
+    Beep.long()
     driver.close()
   }
 
 
-  private def findRdvVaccine(round: Int): Unit = {
+  private def findRdvVaccine(round: Int)(implicit startPage: Int, endPage: Int): Unit = {
     log(s"start round $round")
-    for (page <- 1 to maxPage) scanPage(page)
+    for (page <- startPage to endPage) scanPage(page)
   }
 
   def onPageLoad(page: Int): Unit = {
@@ -101,7 +110,8 @@ object RdvVaccine extends WebBrowser {
   }
 
   def falsePositive(address: String): Boolean = {
-    address contains "91200 Athis-Mons"
+    (address equals "Salle des fêtes René L'HELG\n12 Rue Edouard Vaillant, 91200 Athis-Mons") ||
+      (address equals "Centre de Vaccination Covid Paris 15\n31 Rue Peclet, 75015 Paris")
   }
 
   private def prendreRdv(rdv: WebElement): Unit = {
@@ -109,15 +119,21 @@ object RdvVaccine extends WebBrowser {
       log(s"available: ${rdv.getText}")
       log(s"found potential RDV on: ${driver.getCurrentUrl}")
 
-      log(s"chose the RDV at location ${rdv.getLocation}")
+      log(s"about to click on the RDV [${rdv.getAttribute("title")}] at location ${rdv.getLocation}")
       val wait = new WebDriverWait(driver, 6)
       wait.until(ExpectedConditions.elementToBeClickable(rdv))
       rdv.click()
 
       log(s"checking this RDV at: ${driver.getCurrentUrl}")
-      val location = driver.findElement(By.xpath(s"//div[@class='dl-text dl-text-body dl-text-regular dl-text-s']"))
-      log(s"the address:\n${location.getText}")
-      if (falsePositive(location.getText)) {
+      val alreadyConsulted = driver.findElements(By.xpath(s"//span[@class='dl-text dl-text-body dl-text-regular dl-text-s dl-selectable-card-title' and text()='Non']"))
+      if (!alreadyConsulted.isEmpty) {
+        log(s"they ask us if we had already consulted the center, choose ${alreadyConsulted.get(0).getText}")
+        alreadyConsulted.get(0).click()
+      }
+
+      val address = driver.findElement(By.xpath(s"//div[@class='dl-text dl-text-body dl-text-regular dl-text-s']"))
+      log(s"the address:\n${address.getText}")
+      if (falsePositive(address.getText)) {
         log(s"this vacine center is known to be unavailable, skipping")
         // we don't come back to last page, otherwise we repeat the same RDV
         return
@@ -143,32 +159,35 @@ object RdvVaccine extends WebBrowser {
         log(s"looking for available RDV of second injection")
         rdvs = searchRdvs
         pickAvailableSlot(rdvs)
+        log(s"You got a RDV!")
+        Beep.short()
+        pause
       }
 
       acceptIfAsked()
 
-      val submit = driver.findElements(By.xpath(s"//button[@class='dl-button-check-inner']/option[text()='J\'ai lu et j\'accepte les consignes]"))
+      val acceptTerm = "\"J'ai lu et j'accepte les consignes\""
+      val submit = driver.findElements(By.xpath(s"//button[@class='dl-button-check-inner']/option[text()=$acceptTerm]"))
       if (!submit.isEmpty) {
         log(s"Submit, at ${submit.get(0).getLocation}")
         submit.get(0).click()
         acceptIfAsked()
       }
 
-      log(s"You got a RDV!")
-
-      Beep.run(3)
-      pause
     } catch {
-      case e: ElementClickInterceptedException => e.printStackTrace()
+      case e: ElementClickInterceptedException => {
+        log("Cannot click, we guess it's a false slot")
+        e.printStackTrace()
+      }
       case e: StaleElementReferenceException => e.printStackTrace()
       case e: Exception => e.printStackTrace()
     }
-    goBack()
   }
 
   @tailrec
   private def acceptIfAsked(): Unit = {
-    val accept = driver.findElements(By.xpath(s"//button[@class='dl-button-check-inner']/option[text()='J\'accepte']"))
+    val acceptTerm = "\"J'accepte\""
+    val accept = driver.findElements(By.xpath(s"//button[@class='dl-button-check-inner']/option[text()=$acceptTerm]"))
     if (!accept.isEmpty) {
       log(s"accept the terms, at ${accept.get(0).getLocation}")
       accept.get(0).click()
@@ -189,7 +208,7 @@ object RdvVaccine extends WebBrowser {
       rdv.fold({
         log(s"Impossible!")
       })(r => {
-        log(s"pick ${r.getText}")
+        log(s"pick [${r.getAttribute("title")}]")
         r.click()
       })
 
