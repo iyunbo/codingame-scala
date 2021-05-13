@@ -7,6 +7,8 @@ import org.openqa.selenium.{By, _}
 import org.scalatest.time.{Seconds, Span}
 import org.scalatestplus.selenium.WebBrowser
 
+import java.time.LocalDateTime
+import scala.annotation.tailrec
 import scala.collection.mutable
 import scala.io.StdIn.readLine
 import scala.jdk.CollectionConverters._
@@ -45,7 +47,8 @@ object RdvVaccine extends WebBrowser {
 
   val JANSSEN = 7945
 
-  val OPTION_TO_GO = "1re injection vaccin COVID-19 (Pfizer-BioNTech)"
+  val OPTION_MOTIF = "Patients de moins de 50 ans éligibles"
+  val OPTION_INJECTION = "1re injection vaccin COVID-19 (Pfizer-BioNTech)"
 
   def main(args: Array[String]): Unit = {
 
@@ -55,8 +58,8 @@ object RdvVaccine extends WebBrowser {
 
     for (round <- 1 to roundCount) findRdvVaccine(round)
 
-
-    //    driver.close()
+    Beep.run(5)
+    driver.close()
   }
 
 
@@ -74,21 +77,21 @@ object RdvVaccine extends WebBrowser {
     onPageLoad(page)
     go to s"$host/vaccination-covid-19/$region?force_max_limit=$maxAvailableDays&page=$page&ref_visit_motive_ids%5B%5D=$FIRST_MODERNA&ref_visit_motive_ids%5B%5D=$FIRST_PFIZER_BIONTECH"
     for (position <- topPosition to bottomPosition by verticalStep) {
-      showRdvs(position)
+      analyseRdvs(position)
     }
   }
 
-  private def showRdvs(y: Int): Unit = {
+  private def analyseRdvs(y: Int): Unit = {
     js.executeScript(s"window.scrollBy(0,$y)")
     Thread.sleep(waitForRefresh)
 
     val rdvs = searchRdvs
 
-    chooseOneRdv(rdvs)
+    chooseOne(rdvs)
       .fold {
         log("No RDV available")
       } {
-        onRdvFound
+        prendreRdv
       }
 
   }
@@ -101,7 +104,7 @@ object RdvVaccine extends WebBrowser {
     address contains "91200 Athis-Mons"
   }
 
-  private def onRdvFound(rdv: WebElement): Unit = {
+  private def prendreRdv(rdv: WebElement): Unit = {
     try {
       log(s"available: ${rdv.getText}")
       log(s"found potential RDV on: ${driver.getCurrentUrl}")
@@ -111,32 +114,49 @@ object RdvVaccine extends WebBrowser {
       wait.until(ExpectedConditions.elementToBeClickable(rdv))
       rdv.click()
 
-      log(s"this RDV looks promising: ${driver.getCurrentUrl}")
+      log(s"checking this RDV at: ${driver.getCurrentUrl}")
       val location = driver.findElement(By.xpath(s"//div[@class='dl-text dl-text-body dl-text-regular dl-text-s']"))
-      log(s"the adress:\n${location.getText}")
+      log(s"the address:\n${location.getText}")
       if (falsePositive(location.getText)) {
         log(s"this vacine center is known to be unavailable, skipping")
         // we don't come back to last page, otherwise we repeat the same RDV
         return
       }
-      Beep.run()
 
-      val opt = driver.findElement(By.xpath(s"//select[@class='dl-select form-control dl-select-block booking-compact-select']/option[text()='$OPTION_TO_GO']"))
+      log("Congz! this center is available")
+
+      val cat = driver.findElements(By.xpath(s"//select[@class='dl-select form-control dl-select-block booking-compact-select']/option[text()='$OPTION_MOTIF']"))
+      if (!cat.isEmpty) {
+        log(s"the motif is required, choose ${cat.get(0).getText}")
+        cat.get(0).click()
+      }
+
+      val opt = driver.findElement(By.xpath(s"//select[@class='dl-select form-control dl-select-block booking-compact-select']/option[text()='$OPTION_INJECTION']"))
       log(s"select option ${opt.getLocation}")
       opt.click()
 
       log(s"looking for available RDV of first injection")
       var rdvs = searchRdvs
-      selectRdvs(rdvs)
+      pickAvailableSlot(rdvs)
 
       if (rdvs.nonEmpty) {
         log(s"looking for available RDV of second injection")
         rdvs = searchRdvs
-        selectRdvs(rdvs)
+        pickAvailableSlot(rdvs)
       }
 
-      log(s"Done")
+      acceptIfAsked()
 
+      val submit = driver.findElements(By.xpath(s"//button[@class='dl-button-check-inner']/option[text()='J\'ai lu et j\'accepte les consignes]"))
+      if (!submit.isEmpty) {
+        log(s"Submit, at ${submit.get(0).getLocation}")
+        submit.get(0).click()
+        acceptIfAsked()
+      }
+
+      log(s"You got a RDV!")
+
+      Beep.run(3)
       pause
     } catch {
       case e: ElementClickInterceptedException => e.printStackTrace()
@@ -146,15 +166,25 @@ object RdvVaccine extends WebBrowser {
     goBack()
   }
 
+  @tailrec
+  private def acceptIfAsked(): Unit = {
+    val accept = driver.findElements(By.xpath(s"//button[@class='dl-button-check-inner']/option[text()='J\'accepte']"))
+    if (!accept.isEmpty) {
+      log(s"accept the terms, at ${accept.get(0).getLocation}")
+      accept.get(0).click()
+      acceptIfAsked()
+    }
+  }
+
   private def pause = {
     readLine("Enter to continue")
   }
 
-  private def selectRdvs(rdvs: mutable.Buffer[WebElement]): Unit = {
+  private def pickAvailableSlot(rdvs: mutable.Buffer[WebElement]): Unit = {
     if (rdvs.nonEmpty) {
       log(s"found ${rdvs.size} RDVs")
 
-      val rdv = chooseOneRdv(rdvs)
+      val rdv = chooseOne(rdvs)
 
       rdv.fold({
         log(s"Impossible!")
@@ -168,7 +198,7 @@ object RdvVaccine extends WebBrowser {
     }
   }
 
-  private def chooseOneRdv(rdvs: mutable.Buffer[WebElement]): Option[WebElement] = {
+  private def chooseOne[A](rdvs: Iterable[A]): Option[A] = {
     if (rdvs.nonEmpty) {
       Some(Random.shuffle(rdvs).head)
     } else {
@@ -176,5 +206,5 @@ object RdvVaccine extends WebBrowser {
     }
   }
 
-  private def log(msg: String): Unit = println(msg)
+  private def log(msg: String): Unit = println(s"${LocalDateTime.now()} [Covid-19] [Info] $msg")
 }
