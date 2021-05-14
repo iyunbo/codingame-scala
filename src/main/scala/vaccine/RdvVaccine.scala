@@ -21,7 +21,6 @@ object RdvVaccine extends WebBrowser {
   val host = "https://www.doctolib.fr/"
 
   // behavioural parameters
-  val waitForRefresh: Int = 0
   implicit val DEFAULT_START_PAGE: Int = 1
   implicit val DEFAULT_END_PAGE: Int = 8
   val verticalStep = 700
@@ -92,13 +91,13 @@ object RdvVaccine extends WebBrowser {
 
   private def analyseRdvs(y: Int): Unit = {
     js.executeScript(s"window.scrollBy(0,$y)")
-    Thread.sleep(waitForRefresh)
 
+    log(s"searching for available RDV ... ")
     val rdvs = searchRdvs
 
     chooseOne(rdvs)
       .fold {
-        log("No RDV available")
+        log(s"No RDV available near y=$y")
       } { rdv =>
         prendreRdv(rdv)
       }
@@ -122,7 +121,7 @@ object RdvVaccine extends WebBrowser {
       log(s"found potential RDV on: ${driver.getCurrentUrl}")
 
       log(s"about to click on the RDV [${rdv.getAttribute("title")}] at location ${rdv.getLocation}")
-      val wait = new WebDriverWait(driver, 6)
+      val wait = new WebDriverWait(driver, 3)
       wait.until(ExpectedConditions.elementToBeClickable(rdv))
       rdv.click()
 
@@ -164,7 +163,7 @@ object RdvVaccine extends WebBrowser {
         Beep.short()
         pause
       } else {
-        log(s"We tried, but we could not complete the reservation")
+        log(s"We could not complete the RDV")
       }
 
     } catch {
@@ -181,8 +180,8 @@ object RdvVaccine extends WebBrowser {
   }
 
   private def successful(): Boolean = {
-    log(s"checking if the reservation is valid")
-    val accept = driver.findElements(By.xpath("//button[@class='dl-button-check-inner']/option[contains(text()='accepte')]"))
+    log(s"checking if the RDV is valid")
+    val accept = driver.findElements(By.xpath("//button[@class='dl-button-check-inner' and contains(text(), 'accepte')]"))
     !accept.isEmpty
   }
 
