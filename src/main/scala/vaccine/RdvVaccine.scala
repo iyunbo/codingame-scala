@@ -100,6 +100,21 @@ object RdvVaccine extends WebBrowser {
   }
 
 
+  def getOsSuffix: String = {
+    val os = System.getProperty("os.name")
+    log(s"OS: $os")
+    val osString = os.toLowerCase
+    if (osString.contains("win")) {
+      "win32"
+    } else if (osString.contains("nux")) {
+      "linux64"
+    } else if (osString.contains("darwin") || osString.contains("mac")) {
+      "mac64"
+    } else {
+      "generic"
+    }
+  }
+
   private def setup(): Unit = {
     import java.io.File
     import java.net.URL
@@ -109,7 +124,7 @@ object RdvVaccine extends WebBrowser {
     log("Initialization started")
 
     val driverName = "chromedriver"
-    val driverDownloadUrl = "https://chromedriver.storage.googleapis.com/90.0.4430.24/chromedriver_linux64.zip"
+    val driverDownloadUrl = s"https://chromedriver.storage.googleapis.com/90.0.4430.24/chromedriver_${getOsSuffix}.zip"
     val dir = Paths.get(".")
     val driverFile = Paths.get(driverName)
 
