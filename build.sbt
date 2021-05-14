@@ -23,3 +23,8 @@ libraryDependencies += "com.novocode" % "junit-interface" % "0.11" % Test
 testOptions in Test += Tests.Argument(TestFrameworks.JUnit, "-a", "-v", "-s")
 
 Global / lintUnusedKeysOnLoad := false
+
+// strangely, idea uses ivy2 and does not work with coursier
+ThisBuild / useCoursier := false
+
+mainClass in(Compile, packageBin) := Some("org.iyunbo.coding.vaccine.RdvVaccine")

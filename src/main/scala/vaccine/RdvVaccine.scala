@@ -110,8 +110,7 @@ object RdvVaccine extends WebBrowser {
   }
 
   def falsePositive(address: String): Boolean = {
-    (address equals "Salle des fêtes René L'HELG\n12 Rue Edouard Vaillant, 91200 Athis-Mons") ||
-      (address equals "Centre de Vaccination Covid Paris 15\n31 Rue Peclet, 75015 Paris")
+    (address equals "Salle des fêtes René L'HELG\n12 Rue Edouard Vaillant, 91200 Athis-Mons")
   }
 
   private def prendreRdv(rdv: WebElement): Unit = {
