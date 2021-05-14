@@ -50,10 +50,11 @@ object RdvVaccine extends WebBrowser {
   val OPTION_MOTIF = "Patients de moins de 50 ans éligibles"
   val OPTION_INJECTION = "1re injection vaccin COVID-19 (Pfizer-BioNTech)"
 
+  val VACCINE_CENTER_FILTER = "ancestor::div[@id!='search-result-2121551']"
+
   def main(args: Array[String]): Unit = {
 
-    driver.manage().window().maximize()
-    implicitlyWait(Span(1.5, Seconds))
+    implicitlyWait(Span(3, Seconds))
 
     implicit var startPage: Int = RdvVaccine.DEFAULT_START_PAGE
     implicit var endPage: Int = RdvVaccine.DEFAULT_END_PAGE
@@ -105,11 +106,14 @@ object RdvVaccine extends WebBrowser {
   }
 
   private def searchRdvs = {
-    driver.findElements(By.xpath("//div[@class='Tappable-inactive availabilities-slot']")).asScala
+    driver.findElements(
+      By.xpath(s"//div[@class='Tappable-inactive availabilities-slot']")
+    ).asScala
   }
 
   def falsePositive(address: String): Boolean = {
-    (address equals "Salle des fêtes René L'HELG\n12 Rue Edouard Vaillant, 91200 Athis-Mons")
+    // we keep here the list of false positive centers
+    address equals "Salle des fêtes René L'HELG\n12 Rue Edouard Vaillant, 91200 Athis-Mons"
   }
 
   private def prendreRdv(rdv: WebElement): Unit = {
@@ -131,14 +135,6 @@ object RdvVaccine extends WebBrowser {
 
       val address = driver.findElement(By.xpath(s"//div[@class='dl-text dl-text-body dl-text-regular dl-text-s']"))
       log(s"the address:\n${address.getText}")
-      if (falsePositive(address.getText)) {
-        log(s"this vacine center is known to be unavailable, skipping")
-        // we don't come back to last page, otherwise we repeat the same RDV
-        return
-      } else {
-        log("This center is available")
-      }
-
 
       val cat = driver.findElements(By.xpath(s"//select[@class='dl-select form-control dl-select-block booking-compact-select']/option[text()='$OPTION_MOTIF']"))
       if (!cat.isEmpty) {
@@ -163,7 +159,7 @@ object RdvVaccine extends WebBrowser {
         pickAvailableSlot(rdvs)
       }
 
-      if (true) {
+      if (successful()) {
         log(s"You got a RDV !")
         Beep.short()
         pause
@@ -186,8 +182,7 @@ object RdvVaccine extends WebBrowser {
 
   private def successful(): Boolean = {
     log(s"checking if the reservation is valid")
-    val acceptTerm = "\"J'accepte\""
-    val accept = driver.findElements(By.xpath(s"//button[@class='dl-button-check-inner']/option[text()=$acceptTerm]"))
+    val accept = driver.findElements(By.xpath("//button[@class='dl-button-check-inner']/option[contains(text()='accepte')]"))
     !accept.isEmpty
   }
 
