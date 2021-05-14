@@ -9,9 +9,9 @@ object Beep {
     }
   }
 
-  def long(): Unit = run(30)
+  def long(): Unit = run(50)
 
-  def short(): Unit = run(5)
+  def short(): Unit = run(10)
 
   def main(args: Array[String]): Unit = {
     run()

@@ -8,7 +8,6 @@ import org.scalatest.time.{Seconds, Span}
 import org.scalatestplus.selenium.WebBrowser
 
 import java.time.LocalDateTime
-import scala.annotation.tailrec
 import scala.collection.mutable
 import scala.io.StdIn.readLine
 import scala.jdk.CollectionConverters._
@@ -99,8 +98,8 @@ object RdvVaccine extends WebBrowser {
     chooseOne(rdvs)
       .fold {
         log("No RDV available")
-      } {
-        prendreRdv
+      } { rdv =>
+        prendreRdv(rdv)
       }
 
   }
@@ -155,22 +154,18 @@ object RdvVaccine extends WebBrowser {
       pickAvailableSlot(rdvs)
 
       if (rdvs.nonEmpty) {
+        log(s"Good! the first RDV is successfully reserved")
         log(s"looking for available RDV of second injection")
         rdvs = searchRdvs
         pickAvailableSlot(rdvs)
-        log(s"You got a RDV!")
-        Beep.short()
-        pause
       }
 
-      acceptIfAsked()
-
-      val acceptTerm = "\"J'ai lu et j'accepte les consignes\""
-      val submit = driver.findElements(By.xpath(s"//button[@class='dl-button-check-inner']/option[text()=$acceptTerm]"))
-      if (!submit.isEmpty) {
-        log(s"Submit, at ${submit.get(0).getLocation}")
-        submit.get(0).click()
-        acceptIfAsked()
+      if (successful()) {
+        log(s"You got a RDV !")
+        Beep.short()
+        pause
+      } else {
+        log(s"We tried, but we could not complete the reservation")
       }
 
     } catch {
@@ -186,15 +181,11 @@ object RdvVaccine extends WebBrowser {
     }
   }
 
-  @tailrec
-  private def acceptIfAsked(): Unit = {
+  private def successful(): Boolean = {
+    log(s"checking if the reservation is valid")
     val acceptTerm = "\"J'accepte\""
     val accept = driver.findElements(By.xpath(s"//button[@class='dl-button-check-inner']/option[text()=$acceptTerm]"))
-    if (!accept.isEmpty) {
-      log(s"accept the terms, at ${accept.get(0).getLocation}")
-      accept.get(0).click()
-      acceptIfAsked()
-    }
+    !accept.isEmpty
   }
 
   private def pause = {
@@ -208,9 +199,9 @@ object RdvVaccine extends WebBrowser {
       val rdv = chooseOne(rdvs)
 
       rdv.fold({
-        log(s"Impossible!")
+        log(s"Impossible! Check your code")
       })(r => {
-        log(s"pick [${r.getAttribute("title")}]")
+        log(s"about to pick RDV[${r.getAttribute("title")}]")
         r.click()
       })
 
