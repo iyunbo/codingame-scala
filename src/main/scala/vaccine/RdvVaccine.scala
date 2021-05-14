@@ -135,9 +135,10 @@ object RdvVaccine extends WebBrowser {
         log(s"this vacine center is known to be unavailable, skipping")
         // we don't come back to last page, otherwise we repeat the same RDV
         return
+      } else {
+        log("This center is available")
       }
 
-      log("Congz! this center is available")
 
       val cat = driver.findElements(By.xpath(s"//select[@class='dl-select form-control dl-select-block booking-compact-select']/option[text()='$OPTION_MOTIF']"))
       if (!cat.isEmpty) {
@@ -145,9 +146,11 @@ object RdvVaccine extends WebBrowser {
         cat.get(0).click()
       }
 
-      val opt = driver.findElement(By.xpath(s"//select[@class='dl-select form-control dl-select-block booking-compact-select']/option[text()='$OPTION_INJECTION']"))
-      log(s"select option ${opt.getLocation}")
-      opt.click()
+      val opt = driver.findElements(By.xpath(s"//select[@class='dl-select form-control dl-select-block booking-compact-select']/option[text()='$OPTION_INJECTION']"))
+      if (!opt.isEmpty) {
+        log(s"select option ${opt.get(0).getText}")
+        opt.get(0).click()
+      }
 
       log(s"looking for available RDV of first injection")
       var rdvs = searchRdvs
@@ -160,7 +163,7 @@ object RdvVaccine extends WebBrowser {
         pickAvailableSlot(rdvs)
       }
 
-      if (successful()) {
+      if (true) {
         log(s"You got a RDV !")
         Beep.short()
         pause
