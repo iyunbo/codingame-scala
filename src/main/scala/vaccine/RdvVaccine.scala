@@ -7,31 +7,32 @@ import org.openqa.selenium.{By, _}
 import org.scalatest.time.{Seconds, Span}
 import org.scalatestplus.selenium.WebBrowser
 
+import java.nio.file.Files
 import java.time.LocalDateTime
 import scala.collection.mutable
 import scala.io.StdIn.readLine
 import scala.jdk.CollectionConverters._
+import scala.language.postfixOps
 import scala.util.Random
 
 object RdvVaccine extends WebBrowser {
 
-  // initialization
-  implicit val driver: WebDriver = new ChromeDriver()
-  val js: JavascriptExecutor = driver.asInstanceOf[JavascriptExecutor]
-  val host = "https://www.doctolib.fr/"
+
+  val HOST = "https://www.doctolib.fr/"
 
   // behavioural parameters
-  implicit val DEFAULT_START_PAGE: Int = 1
-  implicit val DEFAULT_END_PAGE: Int = 8
-  val verticalStep = 700
-  val topPosition = 150
-  val bottomPosition = 1600
-  val maxCalendarsPerPage = 10
+  type Product = String
+  val DEFAULT_START_PAGE: Int = 1
+  val DEFAULT_END_PAGE: Int = 8
+  val STEP_Y = 700
+  val TOP_Y = 150
+  val BOTTOM_Y = 1600
   val MAX_ROUND = 200
+  val SEARCH_WAIT_SEC = 2
 
   // functional parameters
-  val region = "paris"
-  val maxAvailableDays = 2
+  val REGION = "paris"
+  val MAX_AVAILABLE_DAYS = 2
 
   val FIRST_MODERNA = 7005
   val SECOND_MODERNA = 7004
@@ -48,32 +49,92 @@ object RdvVaccine extends WebBrowser {
 
   val OPTION_MOTIF = "Patients de moins de 50 ans éligibles"
   val OPTION_INJECTION = "1re injection vaccin COVID-19 (Pfizer-BioNTech)"
+  val DEFAULT_PRODUCT: Product = s"ref_visit_motive_ids%5B%5D=$FIRST_MODERNA&ref_visit_motive_ids%5B%5D=$FIRST_PFIZER_BIONTECH"
 
   val VACCINE_CENTER_FILTER = "ancestor::div[@id!='search-result-2121551']"
 
+  val product: String => Product = {
+    case "pfizer1" => productParam(FIRST_PFIZER_BIONTECH)
+    case "pfizer2" => productParam(SECOND_PFIZER_BIONTECH)
+    case "pfizer3" => productParam(THIRD_PFIZER_BIONTECH)
+    case "moderna1" => productParam(FIRST_MODERNA)
+    case "moderna2" => productParam(SECOND_MODERNA)
+    case "janssen" => productParam(JANSSEN)
+    case "astra1" => productParam(FIRST_ASTRA_ZENECA)
+    case "astra2" => productParam(SECOND_ASTRA_ZENECA)
+    case "astra3" => productParam(THIRD_ASTRA_ZENECA)
+    case s => throw new IllegalArgumentException(s"unknown product: $s")
+  }
+
+  // initialization
+  setup()
+  implicit val driver: WebDriver = new ChromeDriver()
+  val js: JavascriptExecutor = driver.asInstanceOf[JavascriptExecutor]
+
+  def productParam(id: Int): Product = s"ref_visit_motive_ids%5B%5D=$id"
+
   def main(args: Array[String]): Unit = {
 
-    implicitlyWait(Span(3, Seconds))
+    log(s"set DOM search waiting time to $SEARCH_WAIT_SEC")
+    implicitlyWait(Span(SEARCH_WAIT_SEC, Seconds))
 
-    implicit var startPage: Int = RdvVaccine.DEFAULT_START_PAGE
-    implicit var endPage: Int = RdvVaccine.DEFAULT_END_PAGE
+    var startPage: Int = DEFAULT_START_PAGE
+    var endPage: Int = DEFAULT_END_PAGE
+    var produit: Product = DEFAULT_PRODUCT
 
     if (args.length >= 2) {
       startPage = Integer.valueOf(args(0))
       endPage = Integer.valueOf(args(1))
     }
 
+    if (args.length >= 3) {
+      log(s"Search for product(s): ${args(2)}")
+      produit = args(2).split(",").map(product).mkString("&")
+    }
 
-    for (round <- 1 to MAX_ROUND) findRdvVaccine(round)(startPage, endPage)
+
+    for (round <- 1 to MAX_ROUND) findRdvVaccine(round)(startPage, endPage, produit)
 
     Beep.long()
     driver.close()
   }
 
 
-  private def findRdvVaccine(round: Int)(implicit startPage: Int, endPage: Int): Unit = {
-    log(s"start round $round")
-    for (page <- startPage to endPage) scanPage(page)
+  private def setup(): Unit = {
+    import java.io.File
+    import java.net.URL
+    import java.nio.file.Paths
+    import sys.process._
+
+    log("Initialization started")
+
+    val driverName = "chromedriver"
+    val driverDownloadUrl = "https://chromedriver.storage.googleapis.com/90.0.4430.24/chromedriver_linux64.zip"
+    val dir = Paths.get(".")
+    val driverFile = Paths.get(driverName)
+
+    if (!Files.exists(driverFile)) {
+      log(s"chromedriver does not exist, downloading from $driverDownloadUrl")
+      val zipFile = s"$driverName.zip"
+      new URL(driverDownloadUrl) #> new File(zipFile) !!
+
+      log(s"unzipping $zipFile")
+
+      s"unzip $zipFile" !!
+
+      s"rm $zipFile" !!
+    }
+
+    val driverPath = Paths.get(driverName).toAbsolutePath.toString
+    log(s"setting chormedriver path to $driverPath")
+    System.setProperty("webdriver.chrome.driver", driverPath)
+
+    log("Initialization done")
+  }
+
+  private def findRdvVaccine(round: Int)(startPage: Int, endPage: Int, produit: Product): Unit = {
+    log(s"start round $round with parameters: (startPage=$startPage, endPage=$endPage, product=$produit)")
+    for (page <- startPage to endPage) scanPage(page, produit)
   }
 
   def onPageLoad(page: Int): Unit = {
@@ -81,10 +142,10 @@ object RdvVaccine extends WebBrowser {
     log(s"url: ${driver.getCurrentUrl}")
   }
 
-  private def scanPage(page: Int): Unit = {
+  private def scanPage(page: Int, produit: Product): Unit = {
     onPageLoad(page)
-    go to s"$host/vaccination-covid-19/$region?force_max_limit=$maxAvailableDays&page=$page&ref_visit_motive_ids%5B%5D=$FIRST_MODERNA&ref_visit_motive_ids%5B%5D=$FIRST_PFIZER_BIONTECH"
-    for (position <- topPosition to bottomPosition by verticalStep) {
+    go to s"$HOST/vaccination-covid-19/$REGION?force_max_limit=$MAX_AVAILABLE_DAYS&page=$page&$produit"
+    for (position <- TOP_Y to BOTTOM_Y by STEP_Y) {
       analyseRdvs(position)
     }
   }
