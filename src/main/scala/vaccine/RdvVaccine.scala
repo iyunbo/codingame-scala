@@ -27,7 +27,7 @@ object RdvVaccine extends WebBrowser {
   val STEP_Y = 700
   val TOP_Y = 150
   val BOTTOM_Y = 1600
-  val MAX_ROUND = 200
+  val MAX_ROUND = 2000
   val SEARCH_WAIT_SEC = 2
 
   // functional parameters
@@ -47,11 +47,12 @@ object RdvVaccine extends WebBrowser {
 
   val JANSSEN = 7945
 
-  val OPTION_MOTIF = "Patients de moins de 50 ans éligibles"
-  val OPTION_INJECTION = "1re injection vaccin COVID-19 (Pfizer-BioNTech)"
+  val MOTIF_CATEGORY = "Vaccination Pfizer"
+  val PRIMARY_OPTION_INJECTION = "1re injection vaccin COVID-19 (Pfizer-BioNTech)"
+  val SECONDARY_OPTION_INJECTION = "1re injection vaccin COVID-19 (Moderna)"
   val DEFAULT_PRODUCT: Product = s"ref_visit_motive_ids%5B%5D=$FIRST_MODERNA&ref_visit_motive_ids%5B%5D=$FIRST_PFIZER_BIONTECH"
 
-  val VACCINE_CENTER_FILTER = "ancestor::div[@id!='search-result-2121551']"
+  val VACCINE_CENTER_FILTER = "ancestor::div[@id!='search-result-5021419']"
 
   val product: String => Product = {
     case "pfizer1" => productParam(FIRST_PFIZER_BIONTECH)
@@ -92,6 +93,7 @@ object RdvVaccine extends WebBrowser {
       produit = args(2).split(",").map(product).mkString("&")
     }
 
+    agreeCookies
 
     for (round <- 1 to MAX_ROUND) findRdvVaccine(round)(startPage, endPage, produit)
 
@@ -124,7 +126,7 @@ object RdvVaccine extends WebBrowser {
     log("Initialization started")
 
     val driverName = "chromedriver"
-    val driverDownloadUrl = s"https://chromedriver.storage.googleapis.com/90.0.4430.24/chromedriver_${getOsSuffix}.zip"
+    val driverDownloadUrl = s"https://chromedriver.storage.googleapis.com/90.0.4430.24/chromedriver_$getOsSuffix.zip"
     val dir = Paths.get(".")
     val driverFile = Paths.get(driverName)
 
@@ -145,6 +147,15 @@ object RdvVaccine extends WebBrowser {
     System.setProperty("webdriver.chrome.driver", driverPath)
 
     log("Initialization done")
+  }
+
+  private def agreeCookies: Any = {
+    go to s"$HOST/vaccination-covid-19/$REGION?force_max_limit=$MAX_AVAILABLE_DAYS&$DEFAULT_PRODUCT"
+    val agreeCookies = driver.findElements(By.xpath(s"//button[@id='didomi-notice-agree-button']"))
+    if (!agreeCookies.isEmpty) {
+      log(s"We accepte cookies")
+      agreeCookies.get(0).click()
+    }
   }
 
   private def findRdvVaccine(round: Int)(startPage: Int, endPage: Int, produit: Product): Unit = {
@@ -182,6 +193,7 @@ object RdvVaccine extends WebBrowser {
 
   private def searchRdvs = {
     driver.findElements(
+      //By.xpath(s"//div[@class='Tappable-inactive availabilities-slot' and $VACCINE_CENTER_FILTER]")
       By.xpath(s"//div[@class='Tappable-inactive availabilities-slot']")
     ).asScala
   }
@@ -191,67 +203,136 @@ object RdvVaccine extends WebBrowser {
     address equals "Salle des fêtes René L'HELG\n12 Rue Edouard Vaillant, 91200 Athis-Mons"
   }
 
+  def findSecendInjection: Any = {
+    log(s"Good! the first RDV is successfully reserved")
+    log(s"looking for available RDV of second injection")
+    val rdvs = searchRdvs
+    pickAvailableRdv(rdvs)
+  }
+
   private def prendreRdv(rdv: WebElement): Unit = {
     try {
-      log(s"available: ${rdv.getText}")
-      log(s"found potential RDV on: ${driver.getCurrentUrl}")
+      enterRdvPage(rdv)
 
-      log(s"about to click on the RDV [${rdv.getAttribute("title")}] at location ${rdv.getLocation}")
-      val wait = new WebDriverWait(driver, 3)
-      wait.until(ExpectedConditions.elementToBeClickable(rdv))
-      rdv.click()
+      answerArleadyConsulted
 
-      log(s"checking this RDV at: ${driver.getCurrentUrl}")
-      val alreadyConsulted = driver.findElements(By.xpath(s"//span[@class='dl-text dl-text-body dl-text-regular dl-text-s dl-selectable-card-title' and text()='Non']"))
-      if (!alreadyConsulted.isEmpty) {
-        log(s"they ask us if we had already consulted the center, choose ${alreadyConsulted.get(0).getText}")
-        alreadyConsulted.get(0).click()
-      }
+      identifyAddress
 
-      val address = driver.findElement(By.xpath(s"//div[@class='dl-text dl-text-body dl-text-regular dl-text-s']"))
-      log(s"the address:\n${address.getText}")
+      answerMotifCategory
 
-      val cat = driver.findElements(By.xpath(s"//select[@class='dl-select form-control dl-select-block booking-compact-select']/option[text()='$OPTION_MOTIF']"))
-      if (!cat.isEmpty) {
-        log(s"the motif is required, choose ${cat.get(0).getText}")
-        cat.get(0).click()
-      }
+      answerMotif
 
-      val opt = driver.findElements(By.xpath(s"//select[@class='dl-select form-control dl-select-block booking-compact-select']/option[text()='$OPTION_INJECTION']"))
-      if (!opt.isEmpty) {
-        log(s"select option ${opt.get(0).getText}")
-        opt.get(0).click()
-      }
+      findBothRdv
 
-      log(s"looking for available RDV of first injection")
-      var rdvs = searchRdvs
-      pickAvailableSlot(rdvs)
-
-      if (rdvs.nonEmpty) {
-        log(s"Good! the first RDV is successfully reserved")
-        log(s"looking for available RDV of second injection")
-        rdvs = searchRdvs
-        pickAvailableSlot(rdvs)
-      }
-
-      if (successful()) {
-        log(s"You got a RDV !")
-        Beep.short()
-        pause
-      } else {
-        log(s"We could not complete the RDV")
-      }
+      succeedOrRetry
 
     } catch {
       case e: ElementClickInterceptedException =>
-        log("Cannot click, we guess it's a false slot")
-        e.printStackTrace()
+        log("Cannot click, we guess it's either a false slot or already visited, ignoring")
       case e: StaleElementReferenceException =>
         log("DOM has changed, verify if you changed the url")
         e.printStackTrace()
       case e: Exception =>
         log("Unexpected error")
         e.printStackTrace()
+    }
+  }
+
+  private def succeedOrRetry: Any = {
+    if (successful()) {
+      log(s"You got a RDV !")
+      Beep.short()
+      pause
+    } else {
+      retry()
+    }
+  }
+
+  private def answerMotif: Any = {
+    val motif = driver.findElements(By.xpath(s"//select[@class='dl-select form-control dl-select-block booking-compact-select']/option[text()='$PRIMARY_OPTION_INJECTION']"))
+    if (!motif.isEmpty) {
+      log(s"select motif ${motif.get(0).getText}")
+      motif.get(0).click()
+    } else {
+      trySecondOption
+    }
+  }
+
+  private def answerMotifCategory: Any = {
+    val category = driver.findElements(By.xpath(s"//select[@class='dl-select form-control dl-select-block booking-compact-select']/option[text()='$MOTIF_CATEGORY']"))
+    if (!category.isEmpty) {
+      log(s"the motif category is required, choose ${category.get(0).getText}")
+      category.get(0).click()
+    }
+  }
+
+  private def identifyAddress: Any = {
+    val address = driver.findElements(By.xpath(s"//div[@class='dl-text dl-text-body dl-text-regular dl-text-s']"))
+    if (!address.isEmpty) {
+      log(s"the address:\n${address.get(0).getText}")
+    } else {
+      log(s"could not identify the address, going forward anyway")
+    }
+  }
+
+  private def answerArleadyConsulted: Any = {
+    log(s"checking this RDV at: ${driver.getCurrentUrl}")
+    val alreadyConsulted = driver.findElements(By.xpath(s"//span[@class='dl-text dl-text-body dl-text-regular dl-text-s dl-selectable-card-title' and text()='Non']"))
+    if (!alreadyConsulted.isEmpty) {
+      log(s"they ask us if we had already consulted the center, choose ${alreadyConsulted.get(0).getText}")
+      alreadyConsulted.get(0).click()
+    }
+  }
+
+  private def enterRdvPage(rdv: WebElement): Unit = {
+    log(s"RDV available: ${rdv.getAttribute("title")}")
+    log(s"found potential RDV on: ${driver.getCurrentUrl}")
+
+    log(s"about to click on the RDV [${rdv.getText}] at location ${rdv.getLocation}")
+    val wait = new WebDriverWait(driver, 3)
+    wait.until(ExpectedConditions.elementToBeClickable(rdv))
+    rdv.click()
+  }
+
+  private def retry(): Unit = {
+    log(s"We could not complete the RDV")
+    log(s"Try one more time")
+
+    trySecondOption
+
+    findBothRdv
+
+    if (successful()) {
+      log(s"You got a RDV !")
+      Beep.short()
+      pause
+    } else {
+      log(s"We could not make the RDV, going back to last url")
+      goBack()
+    }
+  }
+
+  private def findBothRdv: Any = {
+    val rdvs = findFirstInjection
+
+    if (rdvs.nonEmpty) {
+      findSecendInjection
+    }
+  }
+
+  private def findFirstInjection = {
+    log(s"looking for available RDV of first injection")
+    val rdvs = searchRdvs
+    pickAvailableRdv(rdvs)
+    rdvs
+  }
+
+  private def trySecondOption: Any = {
+    log(s"cannot find first option, trying second option")
+    val opt = driver.findElements(By.xpath(s"//select[@class='dl-select form-control dl-select-block booking-compact-select']/option[text()='$SECONDARY_OPTION_INJECTION']"))
+    if (!opt.isEmpty) {
+      log(s"select option ${opt.get(0).getText}")
+      opt.get(0).click()
     }
   }
 
@@ -265,7 +346,7 @@ object RdvVaccine extends WebBrowser {
     readLine("Enter to continue")
   }
 
-  private def pickAvailableSlot(rdvs: mutable.Buffer[WebElement]): Unit = {
+  private def pickAvailableRdv(rdvs: mutable.Buffer[WebElement]): Unit = {
     if (rdvs.nonEmpty) {
       log(s"found ${rdvs.size} RDVs")
 
