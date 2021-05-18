@@ -1,6 +1,6 @@
 name := "codingame-scala"
 
-version := "0.1"
+version := "1.2"
 
 scalaVersion := "2.13.4"
 
@@ -28,3 +28,8 @@ Global / lintUnusedKeysOnLoad := false
 ThisBuild / useCoursier := false
 
 mainClass in(Compile, packageBin) := Some("org.iyunbo.coding.vaccine.RdvVaccine")
+
+lazy val root = (project in file(".")).
+  settings(
+    assemblyJarName in assembly := s"fight-covid-${version.value}.jar"
+  )
