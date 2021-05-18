@@ -224,6 +224,9 @@ object RdvVaccine extends WebBrowser {
       case e: StaleElementReferenceException =>
         log("DOM has changed, verify if you changed the url")
         e.printStackTrace()
+      case e: UnhandledAlertException =>
+        log("We didn't expect the alert")
+        e.printStackTrace()
       case e: Exception =>
         log("Unexpected error")
         e.printStackTrace()
