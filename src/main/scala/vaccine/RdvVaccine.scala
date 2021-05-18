@@ -359,6 +359,7 @@ object RdvVaccine extends WebBrowser {
   }
 
   private def humainAction(addr: String): Unit = {
+    log(s"###############################")
     log(s"type 'ban'  : add this address to blacklist from now on")
     log(s"type 'clear': clear the blacklist")
     log(s"type anything else to continue")
