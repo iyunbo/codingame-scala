@@ -374,6 +374,9 @@ object RdvVaccine extends WebBrowser {
       case "clear" =>
         log(s"clearing banned addresses")
         banned = List()
+      case "exit" =>
+        log(s"Good Bye!")
+        System.exit(0)
       case _ =>
         log(s"continuing")
     }
