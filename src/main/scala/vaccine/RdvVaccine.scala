@@ -365,11 +365,14 @@ object RdvVaccine extends WebBrowser {
     log(s"type anything else to continue")
     val answer = readLine("Now type your choice > ")
     answer match {
-      case "ban" => log(s"next time we will ban addresses:\n${banned mkString "/n#############/n"}")
+      case "ban" =>
         banned = addr :: banned
-      case "clear" => log(s"clearing banned addresses")
+        log(s"next time we will ban addresses:\n${banned mkString "/+++++++/n"}")
+      case "clear" =>
+        log(s"clearing banned addresses")
         banned = List()
-      case _ => log(s"continuing")
+      case _ =>
+        log(s"continuing")
     }
   }
 
