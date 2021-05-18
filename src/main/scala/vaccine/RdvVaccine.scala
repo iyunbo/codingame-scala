@@ -367,7 +367,7 @@ object RdvVaccine extends WebBrowser {
     answer match {
       case "ban" =>
         banned = addr :: banned
-        log(s"next time we will ban addresses:\n${banned mkString "/+++++++/n"}")
+        log(s"next time we will ban addresses:\n${banned mkString "\n+++++++\n"}")
       case "clear" =>
         log(s"clearing banned addresses")
         banned = List()
