@@ -136,10 +136,13 @@ object RdvVaccine extends WebBrowser {
       new URL(driverDownloadUrl) #> new File(zipFile) !!
 
       log(s"unzipping $zipFile")
+      FileHelper.uncompress(zipFile)
+      Files.delete(Paths.get(zipFile))
 
-      s"unzip $zipFile" !!
+      log(s"ensuring executable permission on $driverName")
+      FileHelper.setExecutePermission(driverName)
 
-      s"rm $zipFile" !!
+      log(s"driver $driverName is now ready")
     }
 
     val driverPath = Paths.get(driverName).toAbsolutePath.toString
@@ -212,20 +215,7 @@ object RdvVaccine extends WebBrowser {
 
   private def prendreRdv(rdv: WebElement): Unit = {
     try {
-      enterRdvPage(rdv)
-
-      answerArleadyConsulted
-
-      identifyAddress
-
-      answerMotifCategory
-
-      answerMotif
-
-      findBothRdv
-
-      succeedOrRetry
-
+      process(rdv)
     } catch {
       case e: ElementClickInterceptedException =>
         log("Cannot click, we guess it's either a false slot or already visited, ignoring")
@@ -238,7 +228,23 @@ object RdvVaccine extends WebBrowser {
     }
   }
 
-  private def succeedOrRetry: Any = {
+  private def process(rdv: WebElement): Unit = {
+    enterRdvPage(rdv)
+
+    answerArleadyConsulted()
+
+    identifyAddress()
+
+    answerMotifCategory()
+
+    answerMotif()
+
+    findBothRdv()
+
+    saitisfayOrRetry()
+  }
+
+  private def saitisfayOrRetry(): Unit = {
     if (successful()) {
       log(s"You got a RDV !")
       Beep.short()
@@ -248,17 +254,17 @@ object RdvVaccine extends WebBrowser {
     }
   }
 
-  private def answerMotif: Any = {
+  private def answerMotif(): Unit = {
     val motif = driver.findElements(By.xpath(s"//select[@class='dl-select form-control dl-select-block booking-compact-select']/option[text()='$PRIMARY_OPTION_INJECTION']"))
     if (!motif.isEmpty) {
       log(s"select motif ${motif.get(0).getText}")
       motif.get(0).click()
     } else {
-      trySecondOption
+      trySecondOption()
     }
   }
 
-  private def answerMotifCategory: Any = {
+  private def answerMotifCategory(): Unit = {
     val category = driver.findElements(By.xpath(s"//select[@class='dl-select form-control dl-select-block booking-compact-select']/option[text()='$MOTIF_CATEGORY']"))
     if (!category.isEmpty) {
       log(s"the motif category is required, choose ${category.get(0).getText}")
@@ -266,7 +272,7 @@ object RdvVaccine extends WebBrowser {
     }
   }
 
-  private def identifyAddress: Any = {
+  private def identifyAddress(): Unit = {
     val address = driver.findElements(By.xpath(s"//div[@class='dl-text dl-text-body dl-text-regular dl-text-s']"))
     if (!address.isEmpty) {
       log(s"the address:\n${address.get(0).getText}")
@@ -275,7 +281,7 @@ object RdvVaccine extends WebBrowser {
     }
   }
 
-  private def answerArleadyConsulted: Any = {
+  private def answerArleadyConsulted(): Unit = {
     log(s"checking this RDV at: ${driver.getCurrentUrl}")
     val alreadyConsulted = driver.findElements(By.xpath(s"//span[@class='dl-text dl-text-body dl-text-regular dl-text-s dl-selectable-card-title' and text()='Non']"))
     if (!alreadyConsulted.isEmpty) {
@@ -298,9 +304,9 @@ object RdvVaccine extends WebBrowser {
     log(s"We could not complete the RDV")
     log(s"Try one more time")
 
-    trySecondOption
+    trySecondOption()
 
-    findBothRdv
+    findBothRdv()
 
     if (successful()) {
       log(s"You got a RDV !")
@@ -312,7 +318,7 @@ object RdvVaccine extends WebBrowser {
     }
   }
 
-  private def findBothRdv: Any = {
+  private def findBothRdv(): Unit = {
     val rdvs = findFirstInjection
 
     if (rdvs.nonEmpty) {
@@ -327,7 +333,7 @@ object RdvVaccine extends WebBrowser {
     rdvs
   }
 
-  private def trySecondOption: Any = {
+  private def trySecondOption(): Unit = {
     log(s"cannot find first option, trying second option")
     val opt = driver.findElements(By.xpath(s"//select[@class='dl-select form-control dl-select-block booking-compact-select']/option[text()='$SECONDARY_OPTION_INJECTION']"))
     if (!opt.isEmpty) {
