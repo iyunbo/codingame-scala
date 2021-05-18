@@ -27,7 +27,7 @@ object RdvVaccine extends WebBrowser {
   val STEP_Y = 700
   val TOP_Y = 150
   val BOTTOM_Y = 1600
-  val MAX_ROUND = 2000
+  val MAX_ROUND: Int = Integer.MAX_VALUE
   val SEARCH_WAIT_SEC = 2
 
   // functional parameters
