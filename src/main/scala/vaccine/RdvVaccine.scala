@@ -67,6 +67,8 @@ object RdvVaccine extends WebBrowser {
     case s => throw new IllegalArgumentException(s"unknown product: $s")
   }
 
+  var banned: List[String] = List()
+
   // initialization
   setup()
   implicit val driver: WebDriver = new ChromeDriver()
@@ -233,7 +235,12 @@ object RdvVaccine extends WebBrowser {
 
     answerArleadyConsulted()
 
-    identifyAddress()
+    val addr = identifyAddress
+    if (banned.contains(addr)) {
+      log(s"this address is banned!")
+      goBack()
+      return
+    }
 
     answerMotifCategory()
 
@@ -241,16 +248,16 @@ object RdvVaccine extends WebBrowser {
 
     findBothRdv()
 
-    saitisfayOrRetry()
+    saitisfayOrRetry(addr)
   }
 
-  private def saitisfayOrRetry(): Unit = {
+  private def saitisfayOrRetry(addr: String): Unit = {
     if (successful()) {
       log(s"You got a RDV !")
       Beep.short()
-      pause
+      humainAction(addr)
     } else {
-      retry()
+      retry(addr)
     }
   }
 
@@ -272,12 +279,15 @@ object RdvVaccine extends WebBrowser {
     }
   }
 
-  private def identifyAddress(): Unit = {
+  private def identifyAddress: String = {
     val address = driver.findElements(By.xpath(s"//div[@class='dl-text dl-text-body dl-text-regular dl-text-s']"))
     if (!address.isEmpty) {
-      log(s"the address:\n${address.get(0).getText}")
+      val addr = address.get(0).getText
+      log(s"the address:\n$addr")
+      addr
     } else {
       log(s"could not identify the address, going forward anyway")
+      "--N/A--"
     }
   }
 
@@ -300,7 +310,7 @@ object RdvVaccine extends WebBrowser {
     rdv.click()
   }
 
-  private def retry(): Unit = {
+  private def retry(addr: String): Unit = {
     log(s"We could not complete the RDV")
     log(s"Try one more time")
 
@@ -311,9 +321,9 @@ object RdvVaccine extends WebBrowser {
     if (successful()) {
       log(s"You got a RDV !")
       Beep.short()
-      pause
+      humainAction(addr)
     } else {
-      log(s"We could not make the RDV, going back to last url")
+      log(s"We could not make the RDV, going backwards")
       goBack()
     }
   }
@@ -348,8 +358,18 @@ object RdvVaccine extends WebBrowser {
     !accept.isEmpty
   }
 
-  private def pause = {
-    readLine("Enter to continue")
+  private def humainAction(addr: String): Unit = {
+    log(s"type 'ban'  : add this address to blacklist from now on")
+    log(s"type 'clear': clear the blacklist")
+    log(s"type anything else to continue")
+    val answer = readLine("Now type your choice > ")
+    answer match {
+      case "ban" => log(s"next time we will ban addresses:\n${banned mkString "/n#############/n"}")
+        banned = addr :: banned
+      case "clear" => log(s"clearing banned addresses")
+        banned = List()
+      case _ => log(s"continuing")
+    }
   }
 
   private def pickAvailableRdv(rdvs: mutable.Buffer[WebElement]): Unit = {
