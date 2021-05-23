@@ -365,6 +365,7 @@ object RdvVaccine extends WebBrowser {
     log(s"###############################")
     log(s"type 'ban'  : add this address to blacklist from now on")
     log(s"type 'clear': clear the blacklist")
+    log(s"type 'exit' : to end the program")
     log(s"type anything else to continue")
     val answer = readLine("Now type your choice > ")
     answer match {
