@@ -1,6 +1,6 @@
 name := "codingame-scala"
 
-version := "1.2"
+version := "1.2.1"
 
 scalaVersion := "2.13.4"
 
