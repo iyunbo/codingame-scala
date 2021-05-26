@@ -377,6 +377,7 @@ object RdvVaccine extends WebBrowser {
         banned = List()
       case "exit" =>
         log(s"Good Bye!")
+        driver.close()
         System.exit(0)
       case _ =>
         log(s"continuing")
