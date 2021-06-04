@@ -12,23 +12,23 @@ class BarnesHutSuite {
 
   import FloatOps._
 
-  @Test def `Empty: center of mass should be the center of the cell`: Unit = {
+  @Test def `Empty: center of mass should be the center of the cell`(): Unit = {
     val quad = Empty(51f, 46.3f, 5f)
     assert(quad.massX == 51f, s"${quad.massX} should be 51f")
     assert(quad.massY == 46.3f, s"${quad.massY} should be 46.3f")
   }
 
-  @Test def `Empty: mass should be 0`: Unit = {
+  @Test def `Empty: mass should be 0`(): Unit = {
     val quad = Empty(51f, 46.3f, 5f)
     assert(quad.mass == 0f, s"${quad.mass} should be 0f")
   }
 
-  @Test def `Empty: total should be 0`: Unit = {
+  @Test def `Empty: total should be 0`(): Unit = {
     val quad = Empty(51f, 46.3f, 5f)
     assert(quad.total == 0, s"${quad.total} should be 0")
   }
 
-  @Test def `Leaf with 1 body`: Unit = {
+  @Test def `Leaf with 1 body`(): Unit = {
     val b = new Body(123f, 18f, 26f, 0f, 0f)
     val quad = Leaf(17.5f, 27.5f, 5f, Seq(b))
 
@@ -39,7 +39,7 @@ class BarnesHutSuite {
   }
 
 
-  @Test def `Fork with 3 empty quadrants and 1 leaf (nw)`: Unit = {
+  @Test def `Fork with 3 empty quadrants and 1 leaf (nw)`(): Unit = {
     val b = new Body(123f, 18f, 26f, 0f, 0f)
     val nw = Leaf(17.5f, 27.5f, 5f, Seq(b))
     val ne = Empty(22.5f, 27.5f, 5f)
@@ -55,7 +55,7 @@ class BarnesHutSuite {
     assert(quad.total == 1, s"${quad.total} should be 1")
   }
 
-  @Test def `Empty.insert(b) should return a Leaf with only that body (2pts)`: Unit = {
+  @Test def `Empty.insert(b) should return a Leaf with only that body (2pts)`(): Unit = {
     val quad = Empty(51f, 46.3f, 5f)
     val b = new Body(3f, 54f, 46f, 0f, 0f)
     val inserted = quad.insert(b)
@@ -72,7 +72,7 @@ class BarnesHutSuite {
 
   // test cases for Body
 
-  @Test def `Body.updated should do nothing for Empty quad trees`: Unit = {
+  @Test def `Body.updated should do nothing for Empty quad trees`(): Unit = {
     val b1 = new Body(123f, 18f, 26f, 0f, 0f)
     val body = b1.updated(Empty(50f, 60f, 5f))
 
@@ -80,7 +80,7 @@ class BarnesHutSuite {
     assertEquals(0f, body.yspeed, precisionThreshold)
   }
 
-  @Test def `Body.updated should take bodies in a Leaf into account (2pts)`: Unit = {
+  @Test def `Body.updated should take bodies in a Leaf into account (2pts)`(): Unit = {
     val b1 = new Body(123f, 18f, 26f, 0f, 0f)
     val b2 = new Body(524.5f, 24.5f, 25.5f, 0f, 0f)
     val b3 = new Body(245f, 22.4f, 41f, 0f, 0f)
@@ -95,7 +95,7 @@ class BarnesHutSuite {
 
   // test cases for sector matrix
 
-  @Test def `'SectorMatrix.+=' should add a body at (25,47) to the correct bucket of a sector matrix of size 96 (2pts)`: Unit = {
+  @Test def `'SectorMatrix.+=' should add a body at (25,47) to the correct bucket of a sector matrix of size 96 (2pts)`(): Unit = {
     val body = new Body(5, 25, 47, 0.1f, 0.1f)
     val boundaries = new Boundaries()
     boundaries.minX = 1
@@ -108,7 +108,7 @@ class BarnesHutSuite {
     assert(res, s"Body not found in the right sector")
   }
 
-  @Test def `'SectorMatrix.+=' should add a body at (88,44) to the correct bucket of a sector matrix of size 120`: Unit = {
+  @Test def `'SectorMatrix.+=' should add a body at (88,44) to the correct bucket of a sector matrix of size 120`(): Unit = {
     val body = new Body(5, 88, 44, 0.1f, 0.1f)
     val boundaries = new Boundaries()
     boundaries.minX = 10
@@ -121,7 +121,7 @@ class BarnesHutSuite {
     assert(res, s"Body (${body.x}, ${body.y}) not found in the right sector")
   }
 
-  @Test def `'SectorMatrix.+=' should add a body at (55,90) to the correct bucket of a sector matrix of size 120`: Unit = {
+  @Test def `'SectorMatrix.+=' should add a body at (55,90) to the correct bucket of a sector matrix of size 120`(): Unit = {
     val body = new Body(5, 55, 90, 0.1f, 0.1f)
     val boundaries = new Boundaries()
     boundaries.minX = 10
@@ -134,7 +134,7 @@ class BarnesHutSuite {
     assert(res, s"Body (${body.x}, ${body.y}) not found in the right sector")
   }
 
-  @Test def `'SectorMatrix.+=' should add a body at (150,70) to the edge bucket of a sector matrix of size 120`: Unit = {
+  @Test def `'SectorMatrix.+=' should add a body at (150,70) to the edge bucket of a sector matrix of size 120`(): Unit = {
     val body = new Body(5, 150, 70, 0.1f, 0.1f)
     val boundaries = new Boundaries()
     boundaries.minX = 10
