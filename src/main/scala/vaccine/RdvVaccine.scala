@@ -48,11 +48,10 @@ object RdvVaccine extends WebBrowser {
   val JANSSEN = 7945
 
   val MOTIF_CATEGORY = "Vaccination Pfizer"
-  val PRIMARY_OPTION_INJECTION = "1re injection vaccin COVID-19 (Pfizer-BioNTech)"
-  val SECONDARY_OPTION_INJECTION = "1re injection vaccin COVID-19 (Moderna)"
-  val DEFAULT_PRODUCT: Product = s"ref_visit_motive_ids%5B%5D=$FIRST_MODERNA&ref_visit_motive_ids%5B%5D=$FIRST_PFIZER_BIONTECH"
+  val PRIMARY_OPTION_INJECTION = "2de injection vaccin COVID-19 (Pfizer-BioNTech)"
+  val DEFAULT_PRODUCT: Product = s"ref_visit_motive_id=$SECOND_PFIZER_BIONTECH"
 
-  val VACCINE_CENTER_FILTER = "ancestor::div[@id!='search-result-5021419']"
+  val VACCINE_CENTER_FILTER = "ancestor::div[@id!='search-result-xxx']"
 
   val product: String => Product = {
     case "pfizer1" => productParam(FIRST_PFIZER_BIONTECH)
@@ -74,7 +73,7 @@ object RdvVaccine extends WebBrowser {
   implicit val driver: WebDriver = new ChromeDriver()
   val js: JavascriptExecutor = driver.asInstanceOf[JavascriptExecutor]
 
-  def productParam(id: Int): Product = s"ref_visit_motive_ids%5B%5D=$id"
+  def productParam(id: Int): Product = s"ref_visit_motive_id=$id"
 
   def main(args: Array[String]): Unit = {
 
@@ -129,7 +128,6 @@ object RdvVaccine extends WebBrowser {
 
     val driverName = "chromedriver"
     val driverDownloadUrl = s"https://chromedriver.storage.googleapis.com/90.0.4430.24/chromedriver_$getOsSuffix.zip"
-    val dir = Paths.get(".")
     val driverFile = Paths.get(driverName)
 
     if (!Files.exists(driverFile)) {
@@ -219,7 +217,7 @@ object RdvVaccine extends WebBrowser {
     try {
       process(rdv)
     } catch {
-      case e: ElementClickInterceptedException =>
+      case _: ElementClickInterceptedException =>
         log("Cannot click, we guess it's either a false slot or already visited, ignoring")
       case e: StaleElementReferenceException =>
         log("DOM has changed, verify if you changed the url")
@@ -347,12 +345,7 @@ object RdvVaccine extends WebBrowser {
   }
 
   private def trySecondOption(): Unit = {
-    log(s"cannot find first option, trying second option")
-    val opt = driver.findElements(By.xpath(s"//select[@class='dl-select form-control dl-select-block booking-compact-select']/option[text()='$SECONDARY_OPTION_INJECTION']"))
-    if (!opt.isEmpty) {
-      log(s"select option ${opt.get(0).getText}")
-      opt.get(0).click()
-    }
+    // do nothing
   }
 
   private def successful(): Boolean = {
