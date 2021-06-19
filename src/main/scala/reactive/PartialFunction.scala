@@ -3,7 +3,7 @@ package reactive
 
 import scala.annotation.tailrec
 
-trait PartialFunction[A, R] extends (A => R) {
+trait PartialFunction[-A, +R] extends (A => R) {
   def apply(x: A): R
 
   def isDefinedAt(x: A): Boolean

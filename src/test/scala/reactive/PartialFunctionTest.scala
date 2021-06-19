@@ -10,15 +10,22 @@ class PartialFunctionTest extends AnyFlatSpec with should.Matchers {
     case class Gold() extends Coin {}
     case class Silver() extends Coin {}
 
-    //    val pf: PartialFunction[Coin, String] = {
-    //      case Gold() => "a golden coin"
-    //      // no case for Silver(), because we're only interested in Gold()
-    //    }
-    //
-    //    println(pf.isDefinedAt(Gold()))   // true
-    //    println(pf.isDefinedAt(Silver())) // false
-    //    println(pf(Gold()))               // a golden coin
-    //    println(pf(Silver()))
+    val pf: PartialFunction[Coin, String] = new PartialFunction[Coin, String] {
+      override def apply(x: Coin): String = x match {
+        case Gold() => "a gold coin"
+        case _ => "unknown shit"
+      }
+
+      override def isDefinedAt(x: Coin): Boolean = x match {
+        case Gold() => true
+        case _ => false
+      }
+    }
+
+    println(pf.isDefinedAt(Gold())) // true
+    println(pf.isDefinedAt(Silver())) // false
+    println(pf(Gold())) // a golden coin
+    println(pf(Silver()))
   }
 
   it should "calculate the length of a List" in {
