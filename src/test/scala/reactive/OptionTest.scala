@@ -29,4 +29,10 @@ class OptionTest extends AnyFlatSpec with should.Matchers {
 
     variance(Seq(1.0, 2.0, 3.0)) should be(Some(2.0 / 3))
   }
+
+  it should "detect None of a list" in {
+    Option.sequence(List(Some(1), Some(2))) should be(Some(List(1, 2)))
+    Option.sequence(List(Some(1), Some(2), None)) should be(None)
+    Option.sequence(List()) should be(Some(List()))
+  }
 }
