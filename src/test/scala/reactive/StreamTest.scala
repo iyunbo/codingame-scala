@@ -27,4 +27,10 @@ class StreamTest extends AnyFlatSpec with should.Matchers {
     Stream[Int]().takeWhile(_ => true).toList should be(List())
   }
 
+  it should "test all elements in Stream" in {
+    Stream(1, 3, 5, 7).forAll(_ % 2 == 1) should be(true)
+    Stream[Int]().forAll(_ % 2 == 1) should be(true)
+    Stream(1, 2, 3, 5, 7).forAll(_ % 2 == 1) should be(false)
+  }
+
 }

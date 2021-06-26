@@ -1,6 +1,8 @@
 package org.iyunbo.coding
 package reactive
 
+import reactive.Stream.cons
+
 sealed trait Stream[+A] {
   def toList: List[A]
 
@@ -8,7 +10,17 @@ sealed trait Stream[+A] {
 
   def drop(n: Int): Stream[A]
 
-  def takeWhile(p: A => Boolean): Stream[A]
+  def takeWhile(p: A => Boolean): Stream[A] = folderRight(Stream[A]())((a, s) => if (p(a)) cons(a, s) else s)
+
+  def folderRight[B](z: => B)(f: (A, => B) => B): B = this match {
+    case Cons(h, t) => f(h(), t().folderRight(z)(f))
+    case _ => z
+  }
+
+  def forAll(p: A => Boolean): Boolean = this match {
+    case Cons(h, t) => p(h()) && t().forAll(p)
+    case _ => true
+  }
 }
 
 case object Empty extends Stream[Nothing] {
@@ -18,7 +30,6 @@ case object Empty extends Stream[Nothing] {
 
   override def drop(n: Int): Stream[Nothing] = Empty
 
-  override def takeWhile(p: Nothing => Boolean): Stream[Nothing] = Empty
 }
 
 case class Cons[+A](h: () => A, t: () => Stream[A]) extends Stream[A] {
@@ -28,12 +39,12 @@ case class Cons[+A](h: () => A, t: () => Stream[A]) extends Stream[A] {
 
   override def drop(n: Int): Stream[A] = if (n <= 0) this else t().drop(n - 1)
 
-  override def takeWhile(p: A => Boolean): Stream[A] = {
-    lazy val head = h()
-    lazy val tail = t()
-    if (p(head)) Stream.cons(head, tail.takeWhile(p))
-    else tail.takeWhile(p)
-  }
+  //  override def takeWhile(p: A => Boolean): Stream[A] = {
+  //    lazy val head = h()
+  //    lazy val tail = t()
+  //    if (p(head)) Stream.cons(head, tail.takeWhile(p))
+  //    else tail.takeWhile(p)
+  //  }
 }
 
 object Stream {
