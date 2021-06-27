@@ -17,10 +17,19 @@ sealed trait Stream[+A] {
     case _ => z
   }
 
-  def forAll(p: A => Boolean): Boolean = this match {
-    case Cons(h, t) => p(h()) && t().forAll(p)
-    case _ => true
-  }
+  def forAll(p: A => Boolean): Boolean = folderRight(true)((a, s) => p(a) && s)
+
+  def headOption: Option[A] = folderRight(None: Option[A])((a, _) => Some(a))
+
+  def map[B](f: A => B): Stream[B] = folderRight(Stream[B]())((a, bs) => cons(f(a), bs))
+
+  def filter(p: A => Boolean): Stream[A] = folderRight(Stream[A]())((a, bs) => if (p(a)) cons(a, bs) else bs)
+
+  def append[B >: A](a: => B): Stream[B] = folderRight(Stream(a))((x, bs) => cons[B](x, bs))
+
+  def flatMap[B](f: A => Stream[B]): Stream[B] = folderRight(Stream[B]())((a, bs) => f(a) concat bs)
+
+  def concat[B >: A](other: Stream[B]): Stream[B] = folderRight(other)((a, ss) => cons(a, ss))
 }
 
 case object Empty extends Stream[Nothing] {

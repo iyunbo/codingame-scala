@@ -33,4 +33,40 @@ class StreamTest extends AnyFlatSpec with should.Matchers {
     Stream(1, 2, 3, 5, 7).forAll(_ % 2 == 1) should be(false)
   }
 
+  it should "get optional head" in {
+    Stream(1, 2).headOption should be(Some(1))
+    Stream(1).headOption should be(Some(1))
+    Stream().headOption should be(None)
+  }
+
+  it should "map stream of type A to stream of type B" in {
+    Stream[Int]().map(_.toString) should be(Stream())
+    Stream(1, 2, 3).map(_.toString).toList should be(Stream("1", "2", "3").toList)
+    Stream("1", "2", "3").map(_.toInt).toList should be(Stream(1, 2, 3).toList)
+  }
+
+  it should "filter elements of a Stream" in {
+    Stream[Int]().filter(_ % 2 == 0) should be(Stream())
+    Stream(1, 2, 3).filter(_ % 2 == 0).toList should be(Stream(2).toList)
+    Stream(1, 2, 3).filter(_ % 4 == 0) should be(Stream())
+  }
+
+  it should "append an element to a Stream" in {
+    Stream[Int]().append(1).toList should be(Stream(1).toList)
+    Stream(1, 2).append(3).toList should be(Stream(1, 2, 3).toList)
+    Stream().append(3).toList should be(Stream(3).toList)
+  }
+
+  it should "concatenate two Streams" in {
+    Stream() concat Stream() should be(Stream())
+    (Stream(1, 2, 3, 4) concat Stream(5, 6, 7)).toList should be(Stream(1, 2, 3, 4, 5, 6, 7).toList)
+    (Stream(1, 2, 3, 4) concat Stream()).toList should be(Stream(1, 2, 3, 4).toList)
+    (Stream() concat Stream(4, 5, 6)).toList should be(Stream(4, 5, 6).toList)
+  }
+
+  it should "flat map a Stream" in {
+    (Stream(1, 2, 3, 4) flatMap (a => Stream[Int](a, a * 2))).toList should be(Stream(1, 2, 2, 4, 3, 6, 4, 8).toList)
+    (Stream[Int]() flatMap (a => Stream[Int](a, a * 2))) should be(Stream())
+  }
+
 }
