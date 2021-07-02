@@ -4,13 +4,15 @@ version := "1.2.1"
 
 scalaVersion := "2.13.4"
 
+val circeVersion = "0.14.1"
+
 idePackagePrefix := Some("org.iyunbo.coding")
 
 scalacOptions ++= Seq("-language:implicitConversions", "-deprecation")
 
 libraryDependencies += "org.scalactic" %% "scalactic" % "3.2.2"
 libraryDependencies += "org.scalacheck" %% "scalacheck" % "1.14.1"
-libraryDependencies += "org.typelevel" %% "jawn-parser" % "0.14.2"
+//libraryDependencies += "org.typelevel" %% "jawn-parser" % "0.14.2"
 libraryDependencies += "com.storm-enroute" %% "scalameter-core" % "0.19"
 libraryDependencies += "org.scala-lang.modules" %% "scala-parallel-collections" % "0.2.0"
 libraryDependencies += "org.scalatestplus" %% "selenium-3-141" % "3.2.7.0"
@@ -19,6 +21,12 @@ libraryDependencies += "org.scalatest" %% "scalatest-flatspec" % "3.2.7" % "test
 libraryDependencies += "org.scalatest" %% "scalatest-shouldmatchers" % "3.2.7" % "test"
 
 libraryDependencies += "com.novocode" % "junit-interface" % "0.11" % Test
+
+libraryDependencies ++= Seq(
+  "io.circe" %% "circe-core",
+  "io.circe" %% "circe-generic",
+  "io.circe" %% "circe-parser"
+).map(_ % circeVersion)
 
 testOptions in Test += Tests.Argument(TestFrameworks.JUnit, "-a", "-v", "-s")
 

@@ -1,7 +1,8 @@
 package org.iyunbo.coding
 package codecs
 
-import org.typelevel.jawn.{ Parser, SimpleFacade }
+import org.typelevel.jawn.Facade.SimpleFacade
+import org.typelevel.jawn.Parser
 
 // Utility methods that decode values from `String` JSON blobs, and
 // render values to `String` JSON blobs
@@ -65,12 +66,18 @@ object Util {
 
   implicit val facade: SimpleFacade[Json] = new SimpleFacade[Json] {
     def jnull(): Json = Json.Null
-    def jtrue(): Json.Bool = Json.Bool(true)
-    def jfalse(): Json.Bool = Json.Bool(false)
+
     def jnum(s: CharSequence, decIndex: Int, expIndex: Int): Json.Num = Json.Num(BigDecimal(s.toString))
+
     def jstring(s: CharSequence): Json.Str = Json.Str(s.toString)
+
     def jarray(vs: List[Json]): Json.Arr = Json.Arr(vs)
+
     def jobject(vs: Map[String, Json]): Json.Obj = Json.Obj(vs)
+
+    override def jfalse: Json = Json.Bool(false)
+
+    override def jtrue: Json = Json.Bool(true)
   }
 
 }
