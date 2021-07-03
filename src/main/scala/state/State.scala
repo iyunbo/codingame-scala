@@ -28,6 +28,25 @@ object RNG {
     val (num, next) = nonNegativeInt(rng)
     (num.toDouble / Int.MaxValue, next)
   }
+
+  def intDouble(rng: RNG): ((Int, Double), RNG) = {
+    val (i, next1) = rng.nextInt
+    val (d, next2) = double(next1)
+    ((i, d), next2)
+  }
+
+  def doubleInt(rng: RNG): ((Double, Int), RNG) = {
+    val (d, next1) = double(rng)
+    val (i, next2) = next1.nextInt
+    ((d, i), next2)
+  }
+
+  def double3(rng: RNG): ((Double, Double, Double), RNG) = {
+    val (d1, next1) = double(rng)
+    val (d2, next2) = double(next1)
+    val (d3, next3) = double(next1)
+    ((d1, d2, d3), next3)
+  }
 }
 
 trait State

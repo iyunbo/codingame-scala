@@ -28,4 +28,17 @@ class StateTest extends AnyFlatSpec with should.Matchers {
     values.forAll(d => d >= 0.0 && d < 1.0) should be(true)
   }
 
+  it should "generate int and double tuples" in {
+    val seed = RNG.SimpleRNG(0)
+    val ((i1, d1), next1) = RNG.intDouble(seed)
+    i1 shouldBe a[Int]
+    d1 shouldBe a[Double]
+    val ((d2, i2), next2) = RNG.doubleInt(next1)
+    i2 shouldBe a[Int]
+    d2 shouldBe a[Double]
+    val values = reactive.Stream.unfold[(Double, Double, Double), RNG](seed: RNG)(s => reactive.Some(RNG.double3(s))).take(10)
+    values.forAll(d => d._1 >= 0.0 && d._2 < 1.0 && d._3 < 1.0) should be(true)
+  }
+
+
 }
