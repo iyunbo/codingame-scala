@@ -40,5 +40,13 @@ class StateTest extends AnyFlatSpec with should.Matchers {
     values.forAll(d => d._1 >= 0.0 && d._2 < 1.0 && d._3 < 1.0) should be(true)
   }
 
+  it should "generate list of ints" in {
+    val seed = RNG.SimpleRNG(0)
+    val (l, next1) = RNG.ints(3)(seed)
+    l should have size 3
+    l.head should be(0)
+    println(l)
+  }
+
 
 }

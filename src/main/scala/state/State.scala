@@ -47,6 +47,16 @@ object RNG {
     val (d3, next3) = double(next1)
     ((d1, d2, d3), next3)
   }
+
+  def ints(count: Int)(rng: RNG): (List[Int], RNG) = {
+    if (count > 0) {
+      val (i, next) = rng.nextInt
+      val tail = ints(count - 1)(next)
+      (i :: tail._1, tail._2)
+    } else {
+      (List(), rng)
+    }
+  }
 }
 
 trait State
