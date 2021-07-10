@@ -67,15 +67,7 @@ object RNG {
   }
 
 
-  def sequence[A](fs: List[Rand[A]]): Rand[List[A]] = rng => {
-    fs match {
-      case List() => (List(), rng)
-      case x :: xs =>
-        val (first, next) = x(rng)
-        val (list, lastRng) = sequence(xs)(next)
-        (first :: list, lastRng)
-    }
-  }
+  def sequence[A](fs: List[Rand[A]]): Rand[List[A]] = State.sequence[RNG, A](fs)
 
   def nonNegativeLessThen(n: Int): Rand[Int] = flatMap(nonNegativeInt)(i => {
     val mod = i % n
@@ -91,5 +83,30 @@ object RNG {
 object State {
   type State[S, +A] = S => (A, S)
 
-  
+  def unit[S, A](a: A): State[S, A] = s => (a, s)
+
+  def map[S, A, B](s: State[S, A])(f: A => B): State[S, B] = st => {
+    val (a, next) = s(st)
+    (f(a), next)
+  }
+
+  def map2[S, A, B, C](sa: State[S, A], sb: State[S, B])(f: (A, B) => C): State[S, C] = flatMap(sa)(
+    a => map(sb)(b => f(a, b))
+  )
+
+  def flatMap[S, A, B](sa: State[S, A])(f: A => State[S, B]): State[S, B] = st => {
+    val (a, next) = sa(st)
+    f(a)(next)
+  }
+
+  def sequence[S, A](fs: List[State[S, A]]): State[S, List[A]] = st => {
+    fs match {
+      case List() => (List(), st)
+      case x :: xs =>
+        val (first, next) = x(st)
+        val (list, last) = sequence(xs)(next)
+        (first :: list, last)
+    }
+  }
+
 }
