@@ -54,7 +54,7 @@ class CirceTest extends AnyFlatSpec with should.Matchers {
   it should "traverse json tree" in {
     val json: String =
       """
-      {k
+      {
         "id": "c730433b-082c-4984-9d66-855c243266f0",
         "name": "Foo",
         "counts": [1, 2, 3],
