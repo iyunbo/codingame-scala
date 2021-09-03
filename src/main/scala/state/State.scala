@@ -29,7 +29,7 @@ object RNG {
     val (num, next) = rng.nextInt
     num match {
       case Int.MinValue => (Int.MaxValue, next)
-      case negative: Int if negative < 0 => (-num, next)
+      case negative: Int if negative < 0 => (-negative, next)
       case _ => (num, next)
     }
   }

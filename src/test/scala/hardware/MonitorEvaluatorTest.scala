@@ -25,4 +25,14 @@ class MonitorEvaluatorTest extends AnyFlatSpec with should.Matchers {
     println(s"your ppi is: $ppi")
   }
 
+  it should "evaluate ppi of a 34' Mi Curved Gaming monitor" in {
+    val ppi = MonitorEvaluator.ppi(heightResolution = 1440, size = 34)
+    println(s"your ppi is: $ppi")
+  }
+
+  it should "evaluate ppi of a 150' Mi 4k Lazer Project" in {
+    val ppi = MonitorEvaluator.ppi(heightResolution = 2160, size = 80)
+    println(s"your ppi is: $ppi")
+  }
+
 }
