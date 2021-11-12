@@ -94,6 +94,15 @@ object Par {
     val parList = parMap(ps)((a: A) => if (f(a)) List(a) else List[A]())
     map(parList)(_.flatten)
   }
+
+  def choiceN[A](cond: Par[Int])(choices: List[Par[A]]): Par[A] =
+    es => {
+      val idx = run(es)(cond).get()
+      choices.toIndexedSeq(idx)(es)
+    }
+
+  def choice[A](cond: Par[Boolean])(t: Par[A], f: Par[A]): Par[A] =
+    choiceN(map(cond)(b => if (b) 0 else 1))(List(t, f))
 }
 
 
