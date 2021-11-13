@@ -96,13 +96,27 @@ object Par {
   }
 
   def choiceN[A](cond: Par[Int])(choices: List[Par[A]]): Par[A] =
-    es => {
-      val idx = run(es)(cond).get()
-      choices.toIndexedSeq(idx)(es)
-    }
+    flatMap(cond)(idx => choices.toIndexedSeq(idx))
 
   def choice[A](cond: Par[Boolean])(t: Par[A], f: Par[A]): Par[A] =
-    choiceN(map(cond)(b => if (b) 0 else 1))(List(t, f))
+    flatMap(cond)({
+      case true => t
+      case false => f
+    })
+
+  def choiceMap[K, V](key: Par[K])(choices: Map[K, Par[V]]): Par[V] =
+    flatMap(key)(choices)
+
+  def flatMap[A, B](x: Par[A])(f: A => Par[B]): Par[B] =
+    es => {
+      val k = run(es)(x).get()
+      f(k)(es)
+    }
+
+  def join[T](a: Par[Par[T]]): Par[T] =
+    flatMap(a)(p =>
+      es => run(es)(p)
+    )
 }
 
 
