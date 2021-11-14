@@ -39,9 +39,9 @@ class GenTest extends AnyFlatSpec with should.Matchers {
     val smallInt = Gen.choose(-10, 10)
     @tailrec
     def isSorted(l: List[Int]): Boolean = l match {
-      case List()      => true
-      case _ :: List() => true
-      case x :: xs     => x <= xs.head && isSorted(xs)
+      case List()  => true
+      case List(_) => true
+      case x :: xs => x <= xs.head && isSorted(xs)
     }
     val spec = Prop.forAll(Gen.listOf1(smallInt))(ns => isSorted(ns.sorted))
     Prop.run(spec)
