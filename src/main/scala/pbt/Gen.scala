@@ -2,7 +2,7 @@ package org.iyunbo.coding
 package pbt
 
 import parallel.Par.Par
-import pbt.Gen.forAllPar
+import pbt.Gen.{forAllPar, int}
 import pbt.Prop._
 import state.RNG.Rand
 import state.{RNG, State}
@@ -20,6 +20,8 @@ case class Gen[+A](sample: Rand[A]) {
     Gen(State.map2(this.sample, that.sample)(f))
 
   def listOf(size: Gen[Int]): Gen[List[A]] = size.flatMap(Gen.listOfN(_, this))
+
+  def listOf: Gen[List[A]] = listOf(int)
 
   def unsized: SGen[A] = SGen(_ => this)
 
@@ -53,6 +55,20 @@ object Gen {
   def int: Gen[Int] = Gen(RNG.nonNegativeInt)
 
   def double: Gen[Double] = Gen(RNG.double)
+
+  def char: Gen[Char] = for {
+    i <- int
+    b <- boolean
+  } yield {
+    if (b) {
+      'A' + i % 26
+    }.toChar
+    else {
+      'a' + i % 26
+    }.toChar
+  }
+
+  def string: Gen[String] = char.listOf.map(_.toString())
 
   def union[A](g1: Gen[A], g2: Gen[A]): Gen[A] =
     boolean.flatMap(p => if (p) g1 else g2)
