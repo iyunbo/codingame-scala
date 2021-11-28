@@ -1,10 +1,9 @@
 package org.iyunbo.coding
 package parsers
 
+import parsers.Parsers.Location
 import pbt.Prop.forAll
-import pbt.{Gen, Prop, SGen}
-
-import org.iyunbo.coding.pbt.Gen.S.**
+import pbt.{Gen, Prop}
 
 import scala.util.matching.Regex
 
@@ -13,6 +12,7 @@ trait Parsers[ParseError, Parser[+_]] {
   // primitive
   def run[A](p1: Parser[A])(input: String): Either[ParseError, A]
   def succeed[A](a: A): Parser[A] = string("") map (_ => a)
+  def fail[A]: ParseError
   // primitive
   def slice[A](p1: Parser[A]): Parser[String]
   // primitive
@@ -54,14 +54,9 @@ trait Parsers[ParseError, Parser[+_]] {
   case class IntParser(value: Int) extends Parser[Int]
 
   def label[A](msg: String)(p: Parser[A]): Parser[A]
+  def scope[A](msg: String)(p: Parser[A]): Parser[A]
 
-  case class Location(input: String, offset: Int = 0) {
-    lazy val line: Int = input.slice(0, offset + 1).count(_ == '\n') + 1
-    lazy val col: Int = input.slice(0, offset + 1).lastIndexOf('\n') match {
-      case -1        => offset + 1
-      case lineStart => offset - lineStart
-    }
-  }
+  def attempt[A](p: Parser[A]): Parser[A]
 
   def errorLocation(e: ParseError): Location
   def errorMessage(e: ParseError): String
@@ -102,6 +97,11 @@ trait Parsers[ParseError, Parser[+_]] {
           case _       => true
         }
       }
+
+    def attemptLaw[A](p2: Parser[A]): Prop =
+      forAll(Gen.string) { s =>
+        (attempt(string(s) map (_ => fail)) or p2) == p2
+      }
   }
 
 }
@@ -110,8 +110,20 @@ object Parsers {
   def jsonParser[Err, Parser[+_]](P: Parsers[Err, Parser]): Parser[JSON] = {
     import P._
     val spaces = char(' ').many.slice
+    val json =
+      char('{') ** spaces ** regex("[a-zA-Z]".r) ** char(':') ** char('}')
     ???
   }
+
+  case class Location(input: String, offset: Int = 0) {
+    lazy val line: Int = input.slice(0, offset + 1).count(_ == '\n') + 1
+    lazy val col: Int = input.slice(0, offset + 1).lastIndexOf('\n') match {
+      case -1        => offset + 1
+      case lineStart => offset - lineStart
+    }
+  }
+
+  case class ParseError(stack: List[(Location, String)])
 }
 
 trait JSON
