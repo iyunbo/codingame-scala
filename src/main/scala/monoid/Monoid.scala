@@ -70,20 +70,6 @@ object Monoid {
       }
     }
   }
-
-  val wcMonoid: Monoid[WC] = new Monoid[WC] {
-    override def op(a1: WC, a2: WC): WC = (a1, a2) match {
-      case (Stub(s1), Stub(s2))                 => Stub(s1 + s2)
-      case (Stub(s1), Part(l, n, r))            => Part(s1 + l, n, r)
-      case (Part(l, n, r), Stub(s2))            => Part(l, n, r + s2)
-      case (Part(l1, n1, r1), Part(l2, n2, r2)) => Part(l1, n1 + n2, r1 + l2)
-    }
-
-    override def zero: WC = Stub("")
-
-//    def merge(s1: String, s2: String): WC = if(s1.endsWith(" ") || s2.startsWith(" ")) Part(s1, )
-  }
-
 }
 
 trait Monoid[A] {
