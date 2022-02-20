@@ -5,7 +5,7 @@ import pbt.{Gen, Prop}
 
 object Monoid {
 
-  def compose[A](f1: A => A, f2: A => A): A => A = a => f1(f2(a))
+  def compose[A](f1: A => A, f2: A => A): A => A = a => f2(f1(a))
 
   def verifyWithInts(predicate: Int => Boolean): Unit = for (v <- 1 to 999)
     assert(predicate(v))
@@ -73,9 +73,9 @@ object Monoid {
 
   val wcMonoid: Monoid[WC] = new Monoid[WC] {
     override def op(a1: WC, a2: WC): WC = (a1, a2) match {
-      case (Stub(s1), Stub(s2)) => Stub(s1 + s2)
-      case (Stub(s1), Part(l, n, r)) => Part(s1+l, n, r)
-      case (Part(l,n, r), Stub(s2)) => Part(l, n, r + s2)
+      case (Stub(s1), Stub(s2))                 => Stub(s1 + s2)
+      case (Stub(s1), Part(l, n, r))            => Part(s1 + l, n, r)
+      case (Part(l, n, r), Stub(s2))            => Part(l, n, r + s2)
       case (Part(l1, n1, r1), Part(l2, n2, r2)) => Part(l1, n1 + n2, r1 + l2)
     }
 
@@ -116,3 +116,30 @@ sealed trait WC
 case class Stub(chars: String) extends WC
 case class Part(lStub: String, words: Int, rStub: String) extends WC
 
+object WordCounter extends Monoid[WC] {
+  override def op(a1: WC, a2: WC): WC = (a1, a2) match {
+    case (Stub(s1), Stub(s2)) =>
+      val words = (s1 + s2).split(' ')
+      val complete = words.length - 2
+      if (complete > 1)
+        Part(words(0), complete, words(complete + 1))
+      else {
+        if (words.nonEmpty && words(0).nonEmpty)
+          Part("", 1, "")
+        else
+          zero
+      }
+    case (Part(l1, w1, r1), Part(l2, w2, r2)) =>
+      Part(l1, (w1 + w2) + (r1 + l2).split(' ').length, r2)
+    case (Stub(s1), Part(l2, w2, r2)) =>
+      val words = (s1 + l2).split(' ')
+      val complete = words.length - 1
+      Part(words(0), complete + w2, r2)
+    case (Part(l1, w1, r1), Stub(s2)) =>
+      val words = (r1 + s2).split(' ')
+      val complete = words.length - 1
+      Part(l1, complete + w1, words(complete))
+  }
+
+  override def zero: WC = Part("", 0, "")
+}

@@ -1,8 +1,9 @@
 package org.iyunbo.coding
 package monoid
 
-import org.iyunbo.coding.monoid.Monoid.monoidLaws
-import org.iyunbo.coding.pbt.{Gen, Prop}
+import monoid.Monoid.monoidLaws
+import pbt.{Gen, Prop}
+
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should
 
@@ -40,13 +41,37 @@ class MonoidTest extends AnyFlatSpec with should.Matchers {
     }
 
     List(intAddition, intMultiplication).foreach(monoid =>
-      Prop.run(monoidLaws(monoid, Gen.int))
+      Prop.run(monoidLaws[Int](monoid, Gen.int))
     )
 
     List(booleanOr, booleanAnd).foreach(monoid =>
-      Prop.run(monoidLaws(monoid, Gen.boolean))
+      Prop.run(monoidLaws[Boolean](monoid, Gen.boolean))
     )
 
+  }
+
+  it should "count words" in {
+    WordCounter.op(WordCounter.zero, Stub("hello world")) should be(
+      Part("", 1, "world")
+    )
+    WordCounter.op(Stub("hello world"), WordCounter.zero) should be(
+      Part("hello", 1, "")
+    )
+    WordCounter.op(Stub("my name is h"), Stub("ello world")) should be(
+      Part("my", 3, "world")
+    )
+    WordCounter.op(Stub("my name is h"), Part("ello", 1, "")) should be(
+      Part("my", 4, "")
+    )
+    WordCounter.op(Stub("my name is h"), Part(" ello", 1, "")) should be(
+      Part("my", 5, "")
+    )
+    WordCounter.op(Part("my", 3, "i"), Stub("s hello world")) should be(
+      Part("my", 5, "world")
+    )
+    WordCounter.op(Part("my", 3, "is "), Stub("hello world")) should be(
+      Part("my", 5, "world")
+    )
   }
 
 }

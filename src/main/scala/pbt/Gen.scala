@@ -1,6 +1,7 @@
 package org.iyunbo.coding
 package pbt
 
+import monoid.{Part, Stub, WC}
 import parallel.Par.Par
 import pbt.Gen.{forAllPar, int}
 import pbt.Prop._
@@ -8,6 +9,7 @@ import state.RNG.Rand
 import state.{RNG, State}
 
 import java.util.concurrent.{ExecutorService, Executors}
+import scala.util.Random
 
 case class Gen[+A](sample: Rand[A]) {
   def flatMap[B](f: A => Gen[B]): Gen[B] = Gen(
@@ -32,6 +34,10 @@ case class Gen[+A](sample: Rand[A]) {
 object Gen {
   def choose(start: Int, stop: Int): Gen[Int] = Gen(
     State.map(RNG.nonNegativeInt)(n => start + n % (stop - start))
+  )
+
+  def choice[A](choices: Array[Gen[A]]): Gen[A] = choices(
+    Random.nextInt(choices.length)
   )
 
   def unit[A](a: => A): Gen[A] = Gen(
@@ -69,6 +75,17 @@ object Gen {
   }
 
   def string: Gen[String] = char.listOf.map(_.toString())
+
+  def wc: Gen[WC] = {
+    val words = union(unit(" "), string).listOf
+    val count = int
+    val toSentence: List[String] => String = _.mkString("")
+    val stub = words.map(l => Stub(toSentence(l)))
+    val part = words ** count map (pair =>
+      Part(toSentence(pair._1), pair._2, toSentence(pair._1))
+    )
+    choice(Array(stub, part))
+  }
 
   def union[A](g1: Gen[A], g2: Gen[A]): Gen[A] =
     boolean.flatMap(p => if (p) g1 else g2)
