@@ -72,6 +72,8 @@ class MonoidTest extends AnyFlatSpec with should.Matchers {
     WordCounter.op(Part("my", 3, "is "), Stub("hello world")) should be(
       Part("my", 5, "world")
     )
+    // TODO: fix Gen and Prop, infinite loop or java.lang.StackOverflowError
+//    Prop.run(monoidLaws[WC](WordCounter, Gen.wc))
   }
 
 }
