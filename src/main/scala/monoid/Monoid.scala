@@ -1,7 +1,7 @@
 package org.iyunbo.coding
 package monoid
 
-import pbt.{Gen, Prop}
+import org.scalacheck.{Gen, Prop}
 
 object Monoid {
 
@@ -58,18 +58,15 @@ object Monoid {
     verifyWithInts(a => g_fh(a) == fh_g(a))
   }
 
-  def monoidLaws[A](m: Monoid[A], gen: Gen[A]): Prop = {
-    Prop.forAll(gen) { a =>
-      m.op(a, m.zero) == a && m.op(m.zero, a) == a
-    }
-
-    Prop.forAll(gen.listOf(Gen.unit(3))) { values =>
-      {
-        val a = values.toIndexedSeq
-        m.op(a(0), m.op(a(1), a(2))) == m.op(m.op(a(0), a(1)), a(2))
-      }
-    }
+  def monoidLaw1[A](m: Monoid[A], a: A): Prop = {
+    m.op(a, m.zero) == a && m.op(m.zero, a) == a
   }
+
+  def monoidLaw2[A](m: Monoid[A], values: List[A]): Prop = {
+    val a = values.toIndexedSeq
+    m.op(a(0), m.op(a(1), a(2))) == m.op(m.op(a(0), a(1)), a(2))
+  }
+
 }
 
 trait Monoid[A] {
@@ -104,28 +101,13 @@ case class Part(lStub: String, words: Int, rStub: String) extends WC
 
 object WordCounter extends Monoid[WC] {
   override def op(a1: WC, a2: WC): WC = (a1, a2) match {
-    case (Stub(s1), Stub(s2)) =>
-      val words = (s1 + s2).split(' ')
-      val complete = words.length - 2
-      if (complete > 1)
-        Part(words(0), complete, words(complete + 1))
-      else {
-        if (words.nonEmpty && words(0).nonEmpty)
-          Part("", 1, "")
-        else
-          zero
-      }
+    case (Stub(s1), Stub(s2)) => Stub(s1 + s2)
     case (Part(l1, w1, r1), Part(l2, w2, r2)) =>
-      Part(l1, (w1 + w2) + (r1 + l2).split(' ').length, r2)
-    case (Stub(s1), Part(l2, w2, r2)) =>
-      val words = (s1 + l2).split(' ')
-      val complete = words.length - 1
-      Part(words(0), complete + w2, r2)
-    case (Part(l1, w1, r1), Stub(s2)) =>
-      val words = (r1 + s2).split(' ')
-      val complete = words.length - 1
-      Part(l1, complete + w1, words(complete))
+      val inc = if ((r1 + l2).isEmpty) 0 else 1
+      Part(l1, w1 + inc + w2, r2)
+    case (Stub(s1), Part(l2, w2, r2)) => Part(s1 + l2, w2, r2)
+    case (Part(l1, w1, r1), Stub(s2)) => Part(l1, w1, r1 + s2)
   }
 
-  override def zero: WC = Part("", 0, "")
+  override def zero: WC = Stub("")
 }
