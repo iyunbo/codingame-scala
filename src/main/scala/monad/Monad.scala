@@ -30,14 +30,18 @@ trait Monad[F[_]] extends Functor[F] {
   def product[A, B](ma: F[A], mb: F[B]): F[(A, B)] = map2(ma, mb)((_, _))
 
   def filterM[A](ms: List[A])(f: A => F[Boolean]): F[List[A]] = {
-    val r = traverse(ms)(a =>
-      map(f(a)) {
-        case true  => Some(a)
-        case false => None
-      }
+    ms.foldLeft(unit(List[A]()))((acc, a) =>
+      flatMap(f(a))(b => if (b) map2(unit(a), acc)(_ :: _) else acc)
     )
-    map(r)(ll => ll.flatten)
   }
+
+  def compose[A, B, C](fa: A => F[B], fb: B => F[C]): A => F[C] = a =>
+    flatMap(fa(a))(fb)
+
+  def flatMapV2[A, B](fa: F[A])(f: A => F[B]): F[B] =
+    compose(identity[F[A]], f)(fa)
+
+  def join[A](mma: F[F[A]]): F[A] = flatMap(mma)(identity[F[A]])
 }
 
 object Monad {
