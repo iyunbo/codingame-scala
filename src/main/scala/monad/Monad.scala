@@ -3,23 +3,22 @@ package monad
 
 import parallel.Par
 import parallel.Par.Par
+import state.State
+import state.State.State
 
 import org.scalacheck.Gen
 
-trait Monad[F[_]] extends Functor[F] {
+trait Monad[F[_]] extends Applicative[F] {
 
   def flatMap[A, B](fa: F[A])(f: A => F[B]): F[B]
-  def unit[A](a: => A): F[A]
-
-  def map[A, B](fa: F[A])(f: A => B): F[B] = flatMap(fa)(a => unit(f(a)))
-
-  def map2[A, B, C](fa: F[A], fb: F[B])(f: (A, B) => C): F[C] =
-    flatMap(fa)(a => map(fb)(b => f(a, b)))
 
   def sequence[A](lma: List[F[A]]): F[List[A]] =
     lma.foldLeft(unit(List[A]()))((fl: F[List[A]], fa: F[A]) =>
       flatMap(fl)(l => map(fa)(a => a :: l))
     )
+
+  def apply[A, B](fab: F[A => B])(fa: F[A]): F[B] =
+    flatMap(fab)(a2b => map(fa)(a2b))
 
   def traverse[A, B](la: List[A])(f: A => F[B]): F[List[B]] = sequence(la map f)
 
@@ -65,4 +64,13 @@ object Monad {
 
     override def unit[A](a: => A): Par[A] = Par.unit(a)
   }
+
+  def stateMonad[S]: Monad[({ type f[X] = State[S, X] })#f] =
+    new Monad[({ type f[X] = State[S, X] })#f] {
+      override def flatMap[A, B](fa: State[S, A])(
+          f: A => State[S, B]
+      ): State[S, B] = State.flatMap(fa)(f)
+
+      override def unit[A](a: => A): State[S, A] = State.unit(a)
+    }
 }
