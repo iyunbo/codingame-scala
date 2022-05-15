@@ -51,7 +51,7 @@ object Monad {
     override def unit[A](a: => A): Gen[A] = Gen.const[A](a)
   }
 
-  val parserMonad: Monad[Option] = new Monad[Option] {
+  val optionMonad: Monad[Option] = new Monad[Option] {
     override def flatMap[A, B](fa: Option[A])(f: A => Option[B]): Option[B] =
       fa flatMap f
 
