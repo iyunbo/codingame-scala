@@ -12,15 +12,8 @@ trait Monad[F[_]] extends Applicative[F] {
 
   def flatMap[A, B](fa: F[A])(f: A => F[B]): F[B]
 
-  def sequence[A](lma: List[F[A]]): F[List[A]] =
-    lma.foldLeft(unit(List[A]()))((fl: F[List[A]], fa: F[A]) =>
-      flatMap(fl)(l => map(fa)(a => a :: l))
-    )
-
   def apply[A, B](fab: F[A => B])(fa: F[A]): F[B] =
     flatMap(fab)(a2b => map(fa)(a2b))
-
-  def traverse[A, B](la: List[A])(f: A => F[B]): F[List[B]] = sequence(la map f)
 
   def replicateM[A](n: Int, ma: F[A]): F[List[A]] = sequence(
     (1 to n).map(_ => ma).toList
@@ -73,4 +66,16 @@ object Monad {
 
       override def unit[A](a: => A): State[S, A] = State.unit(a)
     }
+
+  def eitherMonad[E]: Monad[({ type f[x] = Either[E, x] })#f] = new Monad[
+    ({
+      type f[x] = Either[E, x]
+    })#f
+  ] {
+    override def flatMap[A, B](fa: Either[E, A])(
+        f: A => Either[E, B]
+    ): Either[E, B] = fa flatMap f
+
+    override def unit[A](a: => A): Either[E, A] = Right(a)
+  }
 }
