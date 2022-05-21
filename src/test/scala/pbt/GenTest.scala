@@ -7,6 +7,7 @@ import state.RNG.SimpleRNG
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should
 
+import java.util.concurrent.Executors
 import scala.annotation.tailrec
 
 class GenTest extends AnyFlatSpec with should.Matchers {
@@ -53,9 +54,11 @@ class GenTest extends AnyFlatSpec with should.Matchers {
 
   it should "check simple Par properties" in {
     val base1 = Prop.checkPar {
-      Par.equal(
-        Par.map(Par.unit(1))(_ + 1),
-        Par.unit(2)
+      Par.unit(
+        Par.equal(Executors.newFixedThreadPool(3))(
+          Par.map(Par.unit(1))(_ + 1),
+          Par.unit(2)
+        )
       )
     }
     Prop.run(base1)
