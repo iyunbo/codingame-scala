@@ -35,9 +35,10 @@ Global / lintUnusedKeysOnLoad := false
 // strangely, idea uses ivy2 and does not work with coursier
 ThisBuild / useCoursier := false
 
-mainClass in(Compile, packageBin) := Some("org.iyunbo.coding.vaccine.RdvVaccine")
+mainClass in (Compile, packageBin) := Some(
+  "org.iyunbo.coding.vaccine.RdvVaccine"
+)
 
-lazy val root = (project in file(".")).
-  settings(
-    assemblyJarName in assembly := s"fight-covid-${version.value}.jar"
-  )
+lazy val root = (project in file(".")).settings(
+  assemblyJarName in assembly := s"fight-covid-${version.value}.jar"
+)

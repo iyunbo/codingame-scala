@@ -17,7 +17,7 @@ trait Applicative[F[_]] extends Functor[F] {
 
   def sequenceMap[K, V](ofa: Map[K, F[V]]): F[Map[K, V]] =
     ofa.foldRight(unit(Map[K, V]()))((kv, acc) =>
-      map2(kv._2, acc)((v, m) => m + (kv._1, v))
+      map2(kv._2, acc)((v, m) => m + (kv._1 -> v))
     )
 
   def product[G[_]](
